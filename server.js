@@ -3,82 +3,113 @@ const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
-const path = require('path'); // Módulo integrado de Node para manejar rutas de archivos
+const path = require('path');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
-
-// Middleware: Permite recibir datos en formato JSON y conectar con el frontend sin bloqueos de seguridad
 app.use(cors());
 app.use(express.json());
-
-// Servir archivos estáticos (como styles.css o imágenes) que estén en la raíz
 app.use(express.static(__dirname));
 
-// Conexión a PostgreSQL en Render usando la URL externa
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false // Requerido por Render para conexiones cifradas SSL
+    ssl: { rejectUnauthorized: false }
+});
+
+// Configuración del transportador de correos (Gmail)
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,       // Tu cuenta de Gmail de salida
+        pass: process.env.EMAIL_PASS        // Tu "Contraseña de Aplicación" de Google
     }
 });
 
-// Probar que la conexión con PostgreSQL sea exitosa
-pool.connect((err, client, release) => {
-    if (err) {
-        return console.error('Error adquiriendo el cliente de la BD:', err.stack);
-    }
-    console.log('Conexión exitosa a PostgreSQL en Render 🚀');
-    release();
-});
-
-// =========================================================================
-// RUTA DE INICIO (FRONTEND): Carga tu index.html al entrar a https://geoalerta.onrender.com
-// =========================================================================
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// =========================================================================
-// RUTA DE API: REGISTRO MANUAL DE USUARIOS
-// =========================================================================
+// 1. RUTA: REGISTRO MANUAL Y ENVÍO DE CÓDIGO
 app.post('/api/auth/register', async (req, res) => {
     const { nombre, apellido, email, fecha_nacimiento, password } = req.body;
-
     try {
-        // 1. Verificar si el correo ya está registrado en la base de datos
         const usuarioExiste = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
         if (usuarioExiste.rows.length > 0) {
             return res.status(400).json({ mensaje: 'El correo electrónico ya está registrado.' });
         }
 
-        // 2. Encriptar la contraseña por seguridad usando bcrypt (nunca texto plano)
         const salt = await bcrypt.genSalt(10);
         const passwordHasheada = await bcrypt.hash(password, salt);
+        
+        // Generar un código aleatorio de 6 dígitos
+        const codigoVerificacion = Math.floor(100000 + Math.random() * 900000).toString();
 
-        // 3. Insertar el nuevo usuario en la tabla de Postgres
-        const nuevoUsuario = await pool.query(
-            `INSERT INTO usuarios (nombre, apellido, email, fecha_nacimiento, password, auth_provider) 
-             VALUES ($1, $2, $3, $4, $5, 'manual') RETURNING id, email`,
-            [nombre, apellido, email, fecha_nacimiento, passwordHasheada]
+        await pool.query(
+            `INSERT INTO usuarios (nombre, apellido, email, fecha_nacimiento, password, auth_provider, codigo_verificacion) 
+             VALUES ($1, $2, $3, $4, $5, 'manual', $6)`,
+            [nombre, apellido, email, fecha_nacimiento, passwordHasheada, codigoVerificacion]
         );
 
-        // 4. (Paso posterior) Aquí programaremos el envío del código por correo
-        console.log(`Enviar código de verificación a: ${email}`);
+        // Enviar el correo electrónico real
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: 'Código de Verificación - GeoAlerta',
+            text: `Hola ${nombre}, tu código de verificación es: ${codigoVerificacion}`
+        };
 
-        res.status(201).json({
-            mensaje: 'Usuario registrado con éxito. Se requiere verificación por correo.',
-            usuario: nuevoUsuario.rows[0]
-        });
+        await transporter.sendMail(mailOptions);
+        res.status(201).json({ mensaje: 'Usuario registrado. Código enviado al correo.' });
 
     } catch (error) {
-        console.error('Error en el registro:', error);
-        res.status(500).json({ mensaje: 'Error interno del servidor al procesar el registro.' });
+        console.error(error);
+        res.status(500).json({ mensaje: 'Error interno en el servidor.' });
     }
 });
 
-// Iniciar Servidor (Render asigna automáticamente un puerto en la variable process.env.PORT, que suele ser 10000)
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Servidor corriendo con éxito en el puerto ${PORT}`);
+// 2. RUTA: VERIFICAR EL CÓDIGO DEL CORREO
+app.post('/api/auth/verify', async (req, res) => {
+    const { email, codigo } = req.body;
+    try {
+        const result = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
+        if (result.rows.length === 0) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+
+        const usuario = result.rows[0];
+        if (usuario.codigo_verificacion === codigo) {
+            await pool.query('UPDATE usuarios SET verificado = true, codigo_verificacion = NULL WHERE email = $1', [email]);
+            return res.json({ mensaje: 'Cuenta verificada exitosamente. Ya puedes iniciar sesión.' });
+        } else {
+            return res.status(400).json({ mensaje: 'Código incorrecto.' });
+        }
+    } catch (error) {
+        res.status(500).json({ mensaje: 'Error al verificar.' });
+    }
 });
+
+// 3. RUTA: INICIAR SESIÓN (LOGIN)
+app.post('/api/auth/login', async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const result = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
+        if (result.rows.length === 0) return res.status(400).json({ mensaje: 'Credenciales inválidas.' });
+
+        const usuario = result.rows[0];
+        
+        // Verificar si la cuenta ya fue activada por el código
+        if (!usuario.verificado) return res.status(401).json({ mensaje: 'Por favor, verifica tu correo antes de ingresar.' });
+
+        const passwordCorrecta = await bcrypt.compare(password, usuario.password);
+        if (!passwordCorrecta) return res.status(400).json({ mensaje: 'Credenciales inválidas.' });
+
+        // Generar sesión segura de JWT
+        const token = jwt.sign({ id: usuario.id }, process.env.JWT_SECRET, { expiresIn: '24h' });
+        res.json({ token, mensaje: 'Ingreso exitoso' });
+
+    } catch (error) {
+        res.status(500).json({ mensaje: 'Error en el login.' });
+    }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Servidor en puerto ${PORT}`));
