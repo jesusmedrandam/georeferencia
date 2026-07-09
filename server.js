@@ -30,20 +30,22 @@ pool.connect((err, client, release) => {
 });
 
 const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
+    // Al usar un string vacío o forzar el name, evitamos que resuelva solo por IPv6
+    host: 'smtp.gmail.com', 
     port: 587,
     secure: false, 
-    // FORZAR IPV4 PARA EVITAR EL ERROR ENETUNREACH EN RENDER
     family: 4, 
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
     },
     tls: {
-        rejectUnauthorized: false 
+        rejectUnauthorized: false,
+        // Forzamos al handshake TLS a usar IPv4 de forma interna
+        servername: 'smtp.gmail.com'
     },
-    connectionTimeout: 10000, 
-    socketTimeout: 10000
+    connectionTimeout: 15000, 
+    socketTimeout: 15000
 });
 
 // RUTA PRINCIPAL: Carga tu index.html al entrar al link de Render
