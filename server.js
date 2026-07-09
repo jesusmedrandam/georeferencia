@@ -29,7 +29,7 @@ pool.connect((err, client, release) => {
     release();
 });
 
-// Configuración segura del transportador de correos (Gmail)
+// Configuración segura del transportador de correos con límites de tiempo
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 465,
@@ -37,7 +37,10 @@ const transporter = nodemailer.createTransport({
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
-    }
+    },
+    connectionTimeout: 5000, // 5 segundos maximo para conectar
+    greetingTimeout: 5000,
+    socketTimeout: 5000
 });
 
 // RUTA PRINCIPAL: Carga tu index.html al entrar al link de Render
@@ -86,9 +89,9 @@ app.post('/api/auth/register', async (req, res) => {
             return res.status(201).json({ mensaje: 'Usuario registrado. Código enviado al correo.' });
         } catch (mailError) {
             console.error('❌ Error crítico de Nodemailer al mandar el correo:', mailError);
-            // Si el correo falla, avisamos al usuario que puede continuar validando de forma interna
-            return res.status(201).json({ 
-                mensaje: 'Usuario creado con éxito en el sistema. (Nota: Hubo un retraso con el proveedor del correo electrónico, por favor solicita la validación manual o revisa tu bandeja en unos minutos).' 
+            // Devolvemos un código 202 (Aceptado pero con advertencia) para alertar al frontend
+            return res.status(202).json({ 
+                mensaje: 'Usuario creado. Nota: No se pudo despachar el correo (revisa la Contraseña de Aplicación de Google). Usa el código de pgAdmin para verificar.' 
             });
         }
 
@@ -120,7 +123,7 @@ app.post('/api/auth/verify', async (req, res) => {
             return res.status(400).json({ mensaje: 'El código introducido es incorrecto.' });
         }
     } catch (error) {
-        console.error('Error en verificación:', error);
+        console.error('Error en verification:', error);
         res.status(500).json({ mensaje: 'Error interno al procesar la verificación.' });
     }
 });
@@ -159,7 +162,6 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-// Control del puerto asignado por Render (10000) o local (3000)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Servidor corriendo con éxito en el puerto ${PORT}`);
