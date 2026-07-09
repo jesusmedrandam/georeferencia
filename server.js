@@ -29,19 +29,20 @@ pool.connect((err, client, release) => {
     release();
 });
 
-// Configuración alternativa usando STARTTLS (Puerto 587) para evitar bloqueos en la nube
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
-    secure: false, // false porque el puerto 587 empieza sin SSL y luego escala a TLS
+    secure: false, 
+    // FORZAR IPV4 PARA EVITAR EL ERROR ENETUNREACH EN RENDER
+    family: 4, 
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
     },
     tls: {
-        rejectUnauthorized: false // Evita problemas con certificados de servidores externos
+        rejectUnauthorized: false 
     },
-    connectionTimeout: 10000, // Extendemos a 10 segundos
+    connectionTimeout: 10000, 
     socketTimeout: 10000
 });
 
