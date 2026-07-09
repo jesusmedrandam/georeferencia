@@ -5,12 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acceso al Sistema</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* ESTILOS CRUCIALES PARA EL MODAL DE VERIFICACIÓN */
+        .modal-active {
+            display: flex !important;
+        }
+        #modal-verification {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(5px);
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .modal-content {
+            background: white;
+            padding: 35px;
+            border-radius: 16px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+    </style>
 </head>
 <body>
     <div class="login-wrapper">
         <div class="login-container">
             <div class="logo-section">
-                <img src="logo.png" alt="Logo" class="app-logo">
+                <img src="logo.png" alt="Logo de la Empresa" class="app-logo">
             </div>
 
             <div class="form-tabs">
@@ -19,11 +47,11 @@
             </div>
 
             <div class="social-auth">
-                <button class="social-btn google-btn">
+                <button class="social-btn google-btn" onclick="loginConRedes('Google')">
                     <img src="https://www.gstatic.com/lamda/images/shared/google_logo_v2_636dd26af0e513a968600.png" alt="Google">
                     Continuar con Google
                 </button>
-                <button class="social-btn facebook-btn">
+                <button class="social-btn facebook-btn" onclick="loginConRedes('Facebook')">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg" alt="Facebook">
                     Continuar con Facebook
                 </button>
@@ -31,7 +59,6 @@
 
             <div class="divider"><span>o utiliza tu correo</span></div>
 
-            <!-- FORMULARIO: LOGIN -->
             <form id="form-login" class="auth-form active">
                 <div class="input-group">
                     <label>Correo Electrónico</label>
@@ -44,7 +71,6 @@
                 <button type="submit" class="main-submit-btn">Ingresar</button>
             </form>
 
-            <!-- FORMULARIO: REGISTRO -->
             <form id="form-register" class="auth-form">
                 <div class="input-row">
                     <div class="input-group"><label>Nombre</label><input type="text" id="reg-nombre" required placeholder="Juan"></div>
@@ -59,22 +85,22 @@
         </div>
     </div>
 
-    <!-- VENTANA EMERGENTE PARA EL CÓDIGO DE VERIFICACIÓN -->
-    <div id="modal-verification" class="modal">
+    <div id="modal-verification">
         <div class="modal-content">
             <h3>Verifica tu Correo</h3>
-            <p>Hemos enviado un código de 6 dígitos a tu correo electrónico electrónico.</p>
+            <p>Hemos enviado un código de 6 dígitos al correo electrónico introducido.</p>
             <div class="input-group">
                 <label>Introduce el Código</label>
-                <input type="text" id="verification-code" maxlength="6" placeholder="123456" style="text-align: center; font-size: 20px; letter-spacing: 5px;">
+                <input type="text" id="verification-code" maxlength="6" placeholder="123456" style="text-align: center; font-size: 24px; letter-spacing: 6px; font-weight: bold;">
             </div>
-            <button onclick="verifyCode()" class="main-submit-btn">Verificar Cuenta</button>
+            <button onclick="verifyCode()" class="main-submit-btn" style="background: #2563eb;">Verificar Cuenta</button>
         </div>
     </div>
 
     <script>
-        const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:10000' : window.location.origin;
-        let tempEmail = ''; // Guarda el correo temporalmente para la verificación
+        // Detecta automáticamente si estás en local o corriendo el link de Render
+        const API_URL = window.location.origin;
+        let tempEmail = '';
 
         function switchForm(type) {
             document.getElementById('tab-login').classList.remove('active');
@@ -91,7 +117,11 @@
             }
         }
 
-        // LÓGICA DE REGISTRO
+        function loginConRedes(plataforma) {
+            alert(`La integración con ${plataforma} requiere configurar las credenciales OAuth2 de desarrollo. Estará disponible próximamente.`);
+        }
+
+        // CONTROL DE REGISTRO
         document.getElementById('form-register').addEventListener('submit', async (e) => {
             e.preventDefault();
             const nombre = document.getElementById('reg-nombre').value;
@@ -107,15 +137,19 @@
                     body: JSON.stringify({ nombre, apellido, email: tempEmail, fecha_nacimiento, password })
                 });
                 const data = await res.json();
+                
                 if (res.ok) {
-                    document.getElementById('modal-verification').style.display = 'flex';
+                    // Forzar que el modal aparezca en pantalla usando la clase css estricta
+                    document.getElementById('modal-verification').classList.add('modal-active');
                 } else {
                     alert(data.mensaje);
                 }
-            } catch (err) { alert('Error conectando al servidor'); }
+            } catch (err) { 
+                alert('Error al conectar con el servidor.'); 
+            }
         });
 
-        // LÓGICA DE VERIFICACIÓN DE CÓDIGO
+        // CONTROL DE VERIFICACIÓN DEL CÓDIGO
         async function verifyCode() {
             const codigo = document.getElementById('verification-code').value;
             try {
@@ -127,13 +161,15 @@
                 const data = await res.json();
                 alert(data.mensaje);
                 if (res.ok) {
-                    document.getElementById('modal-verification').style.display = 'none';
+                    document.getElementById('modal-verification').classList.remove('modal-active');
                     switchForm('login');
                 }
-            } catch (err) { alert('Error en la verificación'); }
+            } catch (err) { 
+                alert('Error al procesar la verificación.'); 
+            }
         }
 
-        // LÓGICA DE LOGIN
+        // CONTROL DE LOGIN
         document.getElementById('form-login').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('login-email').value;
@@ -147,13 +183,14 @@
                 });
                 const data = await res.json();
                 if (res.ok) {
-                    alert('¡Ingreso Exitoso! Token guardado.');
-                    localStorage.setItem('token', data.token); // Guarda la sesión
-                    // Aquí lo rediriges a tu pantalla de inicio del sistema de alertas
+                    alert('¡Ingreso Exitoso!');
+                    localStorage.setItem('token', data.token);
                 } else {
                     alert(data.mensaje);
                 }
-            } catch (err) { alert('Error conectando al servidor'); }
+            } catch (err) { 
+                alert('Error de red en el inicio de sesión.'); 
+            }
         });
     </script>
 </body>
