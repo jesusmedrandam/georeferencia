@@ -138,11 +138,13 @@
                 });
                 const data = await res.json();
                 
-                if (res.ok) {
-                    // Forzar que el modal aparezca en pantalla usando la clase css estricta
+                // Mostramos el mensaje que viene desde el backend (aviso de correo enviado o de error SMTP)
+                alert(data.mensaje);
+                
+                // Si el estatus es 201 o 202, significa que el usuario SI se insertó en la BD
+                if (res.status === 201 || res.status === 202) {
+                    // Forzar que aparezca el modal en pantalla
                     document.getElementById('modal-verification').classList.add('modal-active');
-                } else {
-                    alert(data.mensaje);
                 }
             } catch (err) { 
                 alert('Error al conectar con el servidor.'); 
