@@ -34,7 +34,7 @@ app.get('/', (req, res) => {
 });
 
 // =========================================================================
-// 1. RUTA: REGISTRO MANUAL DE USUARIOS Y ENVÍO DE CÓDIGO (VÍA API HTTP)
+// 1. RUTA: REGISTRO MANUAL DE USUARIOS Y ENVÍO DE CÓDIGO (VÍA API HTTP DE BREVO)
 // =========================================================================
 app.post('/api/auth/register', async (req, res) => {
     const { nombre, apellido, email, fecha_nacimiento, password } = req.body;
@@ -59,35 +59,35 @@ app.post('/api/auth/register', async (req, res) => {
             [nombre, apellido, email, fecha_nacimiento, passwordHasheada, codigoVerificacion]
         );
 
-        // Envío del correo usando la API HTTP de Resend optimizado para Node.js nativo
+        // Envío del correo usando la API HTTP de Brevo (Permite correos ilimitados a cualquier dirección)
         try {
-            const response = await fetch('https://api.resend.com/emails', {
+            const response = await fetch('https://api.brevo.com/v3/smtp/email', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-                    'User-Agent': 'GeoAlerta-App/1.0.0' // Cabecera crucial para evitar bloqueos de red
+                    'accept': 'application/json',
+                    'api-key': process.env.BREVO_API_KEY,
+                    'content-type': 'application/json'
                 },
                 body: JSON.stringify({
-                    from: 'GeoAlerta <onboarding@resend.dev>', // Remitente gratuito oficial de Resend
-                    to: email,
+                    sender: { name: 'GeoAlerta', email: 'jesusmedrandam@gmail.com' }, // Tu correo actúa como remitente seguro
+                    to: [{ email: email, name: nombre }],
                     subject: 'Código de Verificación - GeoAlerta',
-                    html: `<p>Hola <strong>${nombre}</strong>,</p><p>Tu código de verificación para GeoAlerta es: <span style="font-size: 18px; font-weight: bold; color: #4A90E2;">${codigoVerificacion}</span></p>`
+                    htmlContent: `<p>Hola <strong>${nombre}</strong>,</p><p>Tu código de verificación para GeoAlerta es: <span style="font-size: 18px; font-weight: bold; color: #4A90E2;">${codigoVerificacion}</span></p>`
                 })
             });
 
             const responseData = await response.json();
 
             if (response.ok) {
-                console.log(`✅ Correo enviado vía API con éxito a ${email}`);
+                console.log(`✅ Correo enviado vía Brevo con éxito a ${email}`);
                 return res.status(201).json({ mensaje: 'Usuario registrado con éxito. El código ha sido enviado a tu correo electrónico.' });
             } else {
-                console.error('❌ Resend rechazó la petición:', responseData);
-                throw new Error(responseData.message || 'Fallo en las credenciales del servicio de mensajería.');
+                console.error('❌ Brevo rechazó la petición:', responseData);
+                throw new Error(responseData.message || 'Fallo en el servicio de mensajería Brevo.');
             }
 
         } catch (mailError) {
-            console.error('❌ Error detallado al conectar con Resend:', mailError.message);
+            console.error('❌ Error detallado al conectar con Brevo:', mailError.message);
             // Devolvemos 202 para levantar el modal de verificación de todas formas como plan de contingencia
             return res.status(202).json({ 
                 mensaje: 'Usuario creado. Nota: El servicio de correos se está sincronizando. Por favor, solicita tu activación al administrador.' 
