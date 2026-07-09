@@ -8,10 +8,9 @@
 </head>
 <body>
     <div class="login-wrapper">
-        
         <div class="login-container">
             <div class="logo-section">
-                <img src="logo.png" alt="Logo de la Empresa" class="app-logo">
+                <img src="logo.png" alt="Logo" class="app-logo">
             </div>
 
             <div class="form-tabs">
@@ -22,7 +21,6 @@
             <div class="social-auth">
                 <button class="social-btn google-btn">
                     <img src="https://www.gstatic.com/lamda/images/shared/google_logo_v2_636dd26af0e513a968600.png" alt="Google">
-                    
                     Continuar con Google
                 </button>
                 <button class="social-btn facebook-btn">
@@ -31,63 +29,59 @@
                 </button>
             </div>
 
-            <div class="divider">
-                <span>o utiliza tu correo</span>
-            </div>
+            <div class="divider"><span>o utiliza tu correo</span></div>
 
+            <!-- FORMULARIO: LOGIN -->
             <form id="form-login" class="auth-form active">
                 <div class="input-group">
-                    <label for="login-email">Correo Electrónico</label>
+                    <label>Correo Electrónico</label>
                     <input type="email" id="login-email" required placeholder="ejemplo@correo.com">
                 </div>
                 <div class="input-group">
-                    <label for="login-password">Contraseña</label>
+                    <label>Contraseña</label>
                     <input type="password" id="login-password" required placeholder="••••••••">
                 </div>
                 <button type="submit" class="main-submit-btn">Ingresar</button>
             </form>
 
+            <!-- FORMULARIO: REGISTRO -->
             <form id="form-register" class="auth-form">
                 <div class="input-row">
-                    <div class="input-group">
-                        <label for="reg-nombre">Nombre</label>
-                        <input type="text" id="reg-nombre" required placeholder="Juan">
-                    </div>
-                    <div class="input-group">
-                        <label for="reg-apellido">Apellido</label>
-                        <input type="text" id="reg-apellido" required placeholder="Pérez">
-                    </div>
+                    <div class="input-group"><label>Nombre</label><input type="text" id="reg-nombre" required placeholder="Juan"></div>
+                    <div class="input-group"><label>Apellido</label><input type="text" id="reg-apellido" required placeholder="Pérez"></div>
                 </div>
-                <div class="input-group">
-                    <label for="reg-email">Correo Electrónico</label>
-                    <input type="email" id="reg-email" required placeholder="ejemplo@correo.com">
-                </div>
-                <div class="input-group">
-                    <label for="reg-date">Fecha de Nacimiento</label>
-                    <input type="date" id="reg-date" required>
-                </div>
-                <div class="input-group">
-                    <label for="reg-password">Contraseña</label>
-                    <input type="password" id="reg-password" required placeholder="Mínimo 8 caracteres">
-                </div>
-                
+                <div class="input-group"><label>Correo Electrónico</label><input type="email" id="reg-email" required placeholder="ejemplo@correo.com"></div>
+                <div class="input-group"><label>Fecha de Nacimiento</label><input type="date" id="reg-date" required></div>
+                <div class="input-group"><label>Contraseña</label><input type="password" id="reg-password" required placeholder="Mínimo 8 caracteres"></div>
                 <p class="verification-notice">ℹ️ Te enviaremos un código de verificación a tu correo.</p>
-                
                 <button type="submit" class="main-submit-btn">Registrarse y Verificar</button>
             </form>
+        </div>
+    </div>
 
+    <!-- VENTANA EMERGENTE PARA EL CÓDIGO DE VERIFICACIÓN -->
+    <div id="modal-verification" class="modal">
+        <div class="modal-content">
+            <h3>Verifica tu Correo</h3>
+            <p>Hemos enviado un código de 6 dígitos a tu correo electrónico electrónico.</p>
+            <div class="input-group">
+                <label>Introduce el Código</label>
+                <input type="text" id="verification-code" maxlength="6" placeholder="123456" style="text-align: center; font-size: 20px; letter-spacing: 5px;">
+            </div>
+            <button onclick="verifyCode()" class="main-submit-btn">Verificar Cuenta</button>
         </div>
     </div>
 
     <script>
+        const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:10000' : window.location.origin;
+        let tempEmail = ''; // Guarda el correo temporalmente para la verificación
+
         function switchForm(type) {
-            // Quitar clases activas
             document.getElementById('tab-login').classList.remove('active');
             document.getElementById('tab-register').classList.remove('active');
             document.getElementById('form-login').classList.remove('active');
             document.getElementById('form-register').classList.remove('active');
 
-            // Añadir clase activa al seleccionado
             if(type === 'login') {
                 document.getElementById('tab-login').classList.add('active');
                 document.getElementById('form-login').classList.add('active');
@@ -96,6 +90,71 @@
                 document.getElementById('form-register').classList.add('active');
             }
         }
+
+        // LÓGICA DE REGISTRO
+        document.getElementById('form-register').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nombre = document.getElementById('reg-nombre').value;
+            const apellido = document.getElementById('reg-apellido').value;
+            tempEmail = document.getElementById('reg-email').value;
+            const fecha_nacimiento = document.getElementById('reg-date').value;
+            const password = document.getElementById('reg-password').value;
+
+            try {
+                const res = await fetch(`${API_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, apellido, email: tempEmail, fecha_nacimiento, password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    document.getElementById('modal-verification').style.display = 'flex';
+                } else {
+                    alert(data.mensaje);
+                }
+            } catch (err) { alert('Error conectando al servidor'); }
+        });
+
+        // LÓGICA DE VERIFICACIÓN DE CÓDIGO
+        async function verifyCode() {
+            const codigo = document.getElementById('verification-code').value;
+            try {
+                const res = await fetch(`${API_URL}/api/auth/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: tempEmail, codigo })
+                });
+                const data = await res.json();
+                alert(data.mensaje);
+                if (res.ok) {
+                    document.getElementById('modal-verification').style.display = 'none';
+                    switchForm('login');
+                }
+            } catch (err) { alert('Error en la verificación'); }
+        }
+
+        // LÓGICA DE LOGIN
+        document.getElementById('form-login').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const res = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert('¡Ingreso Exitoso! Token guardado.');
+                    localStorage.setItem('token', data.token); // Guarda la sesión
+                    // Aquí lo rediriges a tu pantalla de inicio del sistema de alertas
+                } else {
+                    alert(data.mensaje);
+                }
+            } catch (err) { alert('Error conectando al servidor'); }
+        });
     </script>
 </body>
 </html>
