@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const path = require('path');
-const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
@@ -14,7 +13,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Configuración de la conexión a PostgreSQL en Render
+// Configuración de la conexión a PostgreSQL en Railway
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
@@ -25,35 +24,17 @@ pool.connect((err, client, release) => {
     if (err) {
         return console.error('Error adquiriendo el cliente de la BD:', err.stack);
     }
-    console.log('Conexión exitosa a PostgreSQL en Render 🚀');
+    console.log('Conexión exitosa a PostgreSQL en Railway 🚀');
     release();
 });
 
-// Configuración optimizada de Nodemailer
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com', 
-    port: 587,
-    secure: false, 
-    family: 4, // Intenta forzar IPv4 en entornos compatibles
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    },
-    tls: {
-        rejectUnauthorized: false,
-        servername: 'smtp.gmail.com'
-    },
-    connectionTimeout: 10000, 
-    socketTimeout: 10000
-});
-
-// RUTA PRINCIPAL: Carga tu index.html al entrar al link de Render
+// RUTA PRINCIPAL: Carga tu index.html al entrar al link de Railway
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // =========================================================================
-// 1. RUTA: REGISTRO MANUAL DE USUARIOS Y ENVÍO DE CÓDIGO
+// 1. RUTA: REGISTRO MANUAL DE USUARIOS Y ENVÍO DE CÓDIGO (VÍA API HTTP)
 // =========================================================================
 app.post('/api/auth/register', async (req, res) => {
     const { nombre, apellido, email, fecha_nacimiento, password } = req.body;
@@ -78,24 +59,36 @@ app.post('/api/auth/register', async (req, res) => {
             [nombre, apellido, email, fecha_nacimiento, passwordHasheada, codigoVerificacion]
         );
 
-        // Opciones del correo electrónico
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: 'Código de Verificación - GeoAlerta',
-            text: `Hola ${nombre}, tu código de verificación para GeoAlerta es: ${codigoVerificacion}`
-        };
-
-        // Bloque aislado para enviar el correo sin romper la respuesta del servidor
+        // Envío del correo usando la API HTTP de Resend (Evita bloqueo de puertos)
         try {
-            await transporter.sendMail(mailOptions);
-            console.log(`✅ Correo enviado con éxito a ${email}`);
-            return res.status(201).json({ mensaje: 'Usuario registrado. Código enviado al correo.' });
+            const response = await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.RESEND_API_KEY}`
+                },
+                body: JSON.stringify({
+                    from: 'GeoAlerta <onboarding@resend.dev>', // Remitente gratuito oficial de Resend
+                    to: email,
+                    subject: 'Código de Verificación - GeoAlerta',
+                    html: `<p>Hola <strong>${nombre}</strong>,</p><p>Tu código de verificación para GeoAlerta es: <span style="font-size: 18px; font-weight: bold; color: #4A90E2;">${codigoVerificacion}</span></p>`
+                })
+            });
+
+            if (response.ok) {
+                console.log(`✅ Correo enviado vía API con éxito a ${email}`);
+                return res.status(201).json({ mensaje: 'Usuario registrado con éxito. El código ha sido enviado a tu correo electrónico.' });
+            } else {
+                const errorData = await response.json();
+                console.error('❌ Resend rechazó la petición:', errorData);
+                throw new Error('Fallo en las credenciales del servicio de mensajería.');
+            }
+
         } catch (mailError) {
-            console.error('❌ Error de Nodemailer (Fallo de red/puerto en Render):', mailError.message);
-            // Devolvemos un código 202 para que el frontend abra el modal de igual forma
+            console.error('❌ Error de red o API al conectar con Resend:', mailError.message);
+            // Devolvemos 202 para levantar el modal de verificación de todas formas como plan de contingencia
             return res.status(202).json({ 
-                mensaje: 'Usuario creado. Nota: No se pudo despachar el correo (Restricción de red en Render). Usa el código de pgAdmin para verificar.' 
+                mensaje: 'Usuario creado. Nota: El servicio de correos no se pudo procesar de forma automática. Por favor, solicita tu activación al administrador.' 
             });
         }
 
