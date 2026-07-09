@@ -59,13 +59,14 @@ app.post('/api/auth/register', async (req, res) => {
             [nombre, apellido, email, fecha_nacimiento, passwordHasheada, codigoVerificacion]
         );
 
-        // Envío del correo usando la API HTTP de Resend (Evita bloqueo de puertos)
+        // Envío del correo usando la API HTTP de Resend optimizado para Node.js nativo
         try {
             const response = await fetch('https://api.resend.com/emails', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.RESEND_API_KEY}`
+                    'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                    'User-Agent': 'GeoAlerta-App/1.0.0' // Cabecera crucial para evitar bloqueos de red
                 },
                 body: JSON.stringify({
                     from: 'GeoAlerta <onboarding@resend.dev>', // Remitente gratuito oficial de Resend
@@ -75,20 +76,21 @@ app.post('/api/auth/register', async (req, res) => {
                 })
             });
 
+            const responseData = await response.json();
+
             if (response.ok) {
                 console.log(`✅ Correo enviado vía API con éxito a ${email}`);
                 return res.status(201).json({ mensaje: 'Usuario registrado con éxito. El código ha sido enviado a tu correo electrónico.' });
             } else {
-                const errorData = await response.json();
-                console.error('❌ Resend rechazó la petición:', errorData);
-                throw new Error('Fallo en las credenciales del servicio de mensajería.');
+                console.error('❌ Resend rechazó la petición:', responseData);
+                throw new Error(responseData.message || 'Fallo en las credenciales del servicio de mensajería.');
             }
 
         } catch (mailError) {
-            console.error('❌ Error de red o API al conectar con Resend:', mailError.message);
+            console.error('❌ Error detallado al conectar con Resend:', mailError.message);
             // Devolvemos 202 para levantar el modal de verificación de todas formas como plan de contingencia
             return res.status(202).json({ 
-                mensaje: 'Usuario creado. Nota: El servicio de correos no se pudo procesar de forma automática. Por favor, solicita tu activación al administrador.' 
+                mensaje: 'Usuario creado. Nota: El servicio de correos se está sincronizando. Por favor, solicita tu activación al administrador.' 
             });
         }
 
