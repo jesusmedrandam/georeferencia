@@ -29,23 +29,22 @@ pool.connect((err, client, release) => {
     release();
 });
 
+// Configuración optimizada de Nodemailer
 const transporter = nodemailer.createTransport({
-    // Al usar un string vacío o forzar el name, evitamos que resuelva solo por IPv6
     host: 'smtp.gmail.com', 
     port: 587,
     secure: false, 
-    family: 4, 
+    family: 4, // Intenta forzar IPv4 en entornos compatibles
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
     },
     tls: {
         rejectUnauthorized: false,
-        // Forzamos al handshake TLS a usar IPv4 de forma interna
         servername: 'smtp.gmail.com'
     },
-    connectionTimeout: 15000, 
-    socketTimeout: 15000
+    connectionTimeout: 10000, 
+    socketTimeout: 10000
 });
 
 // RUTA PRINCIPAL: Carga tu index.html al entrar al link de Render
@@ -93,10 +92,10 @@ app.post('/api/auth/register', async (req, res) => {
             console.log(`✅ Correo enviado con éxito a ${email}`);
             return res.status(201).json({ mensaje: 'Usuario registrado. Código enviado al correo.' });
         } catch (mailError) {
-            console.error('❌ Error crítico de Nodemailer al mandar el correo:', mailError);
-            // Devolvemos un código 202 (Aceptado pero con advertencia) para alertar al frontend
+            console.error('❌ Error de Nodemailer (Fallo de red/puerto en Render):', mailError.message);
+            // Devolvemos un código 202 para que el frontend abra el modal de igual forma
             return res.status(202).json({ 
-                mensaje: 'Usuario creado. Nota: No se pudo despachar el correo (revisa la Contraseña de Aplicación de Google). Usa el código de pgAdmin para verificar.' 
+                mensaje: 'Usuario creado. Nota: No se pudo despachar el correo (Restricción de red en Render). Usa el código de pgAdmin para verificar.' 
             });
         }
 
