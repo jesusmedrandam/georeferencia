@@ -29,18 +29,20 @@ pool.connect((err, client, release) => {
     release();
 });
 
-// Configuración segura del transportador de correos con límites de tiempo
+// Configuración alternativa usando STARTTLS (Puerto 587) para evitar bloqueos en la nube
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // true para puerto 465 con SSL
+    port: 587,
+    secure: false, // false porque el puerto 587 empieza sin SSL y luego escala a TLS
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
     },
-    connectionTimeout: 5000, // 5 segundos maximo para conectar
-    greetingTimeout: 5000,
-    socketTimeout: 5000
+    tls: {
+        rejectUnauthorized: false // Evita problemas con certificados de servidores externos
+    },
+    connectionTimeout: 10000, // Extendemos a 10 segundos
+    socketTimeout: 10000
 });
 
 // RUTA PRINCIPAL: Carga tu index.html al entrar al link de Render
