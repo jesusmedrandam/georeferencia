@@ -19,10 +19,12 @@ const pool = new Pool({
 
 // Configuración del transportador de correos (Gmail)
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // true para puerto 465 con SSL
     auth: {
-        user: process.env.EMAIL_USER,       // Tu cuenta de Gmail de salida
-        pass: process.env.EMAIL_PASS        // Tu "Contraseña de Aplicación" de Google
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
     }
 });
 
