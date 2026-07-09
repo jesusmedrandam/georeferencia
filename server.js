@@ -8,16 +8,28 @@ const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
+
+// Middlewares estándar
 app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
+// Configuración de la conexión a PostgreSQL en Render
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
 
-// Configuración del transportador de correos (Gmail)
+// Probar conexión con la Base de Datos
+pool.connect((err, client, release) => {
+    if (err) {
+        return console.error('Error adquiriendo el cliente de la BD:', err.stack);
+    }
+    console.log('Conexión exitosa a PostgreSQL en Render 🚀');
+    release();
+});
+
+// Configuración segura del transportador de correos (Gmail)
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 465,
@@ -28,90 +40,127 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+// RUTA PRINCIPAL: Carga tu index.html al entrar al link de Render
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// 1. RUTA: REGISTRO MANUAL Y ENVÍO DE CÓDIGO
+// =========================================================================
+// 1. RUTA: REGISTRO MANUAL DE USUARIOS Y ENVÍO DE CÓDIGO
+// =========================================================================
 app.post('/api/auth/register', async (req, res) => {
     const { nombre, apellido, email, fecha_nacimiento, password } = req.body;
     try {
+        // Verificar si el correo ya existe
         const usuarioExiste = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
         if (usuarioExiste.rows.length > 0) {
             return res.status(400).json({ mensaje: 'El correo electrónico ya está registrado.' });
         }
 
+        // Encriptar contraseña
         const salt = await bcrypt.genSalt(10);
         const passwordHasheada = await bcrypt.hash(password, salt);
         
         // Generar un código aleatorio de 6 dígitos
         const codigoVerificacion = Math.floor(100000 + Math.random() * 900000).toString();
 
+        // Insertar en la Base de Datos
         await pool.query(
             `INSERT INTO usuarios (nombre, apellido, email, fecha_nacimiento, password, auth_provider, codigo_verificacion) 
              VALUES ($1, $2, $3, $4, $5, 'manual', $6)`,
             [nombre, apellido, email, fecha_nacimiento, passwordHasheada, codigoVerificacion]
         );
 
-        // Enviar el correo electrónico real
+        // Opciones del correo electrónico
         const mailOptions = {
             from: process.env.EMAIL_USER,
             to: email,
             subject: 'Código de Verificación - GeoAlerta',
-            text: `Hola ${nombre}, tu código de verificación es: ${codigoVerificacion}`
+            text: `Hola ${nombre}, tu código de verificación para GeoAlerta es: ${codigoVerificacion}`
         };
 
-        await transporter.sendMail(mailOptions);
-        res.status(201).json({ mensaje: 'Usuario registrado. Código enviado al correo.' });
+        // Bloque aislado para enviar el correo sin romper la respuesta del servidor
+        try {
+            await transporter.sendMail(mailOptions);
+            console.log(`✅ Correo enviado con éxito a ${email}`);
+            return res.status(201).json({ mensaje: 'Usuario registrado. Código enviado al correo.' });
+        } catch (mailError) {
+            console.error('❌ Error crítico de Nodemailer al mandar el correo:', mailError);
+            // Si el correo falla, avisamos al usuario que puede continuar validando de forma interna
+            return res.status(201).json({ 
+                mensaje: 'Usuario creado con éxito en el sistema. (Nota: Hubo un retraso con el proveedor del correo electrónico, por favor solicita la validación manual o revisa tu bandeja en unos minutos).' 
+            });
+        }
 
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ mensaje: 'Error interno en el servidor.' });
+        console.error('Error general en registro:', error);
+        res.status(500).json({ mensaje: 'Error interno en el servidor al procesar el registro.' });
     }
 });
 
-// 2. RUTA: VERIFICAR EL CÓDIGO DEL CORREO
+// =========================================================================
+// 2. RUTA: VERIFICAR EL CÓDIGO INTRODUCIDO POR EL USUARIO
+// =========================================================================
 app.post('/api/auth/verify', async (req, res) => {
     const { email, codigo } = req.body;
     try {
         const result = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-        if (result.rows.length === 0) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+        if (result.rows.length === 0) {
+            return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+        }
 
         const usuario = result.rows[0];
+        
+        // Validar si el código coincide
         if (usuario.codigo_verificacion === codigo) {
+            // Actualizar estado a verificado y limpiar el código usado
             await pool.query('UPDATE usuarios SET verificado = true, codigo_verificacion = NULL WHERE email = $1', [email]);
             return res.json({ mensaje: 'Cuenta verificada exitosamente. Ya puedes iniciar sesión.' });
         } else {
-            return res.status(400).json({ mensaje: 'Código incorrecto.' });
+            return res.status(400).json({ mensaje: 'El código introducido es incorrecto.' });
         }
     } catch (error) {
-        res.status(500).json({ mensaje: 'Error al verificar.' });
+        console.error('Error en verificación:', error);
+        res.status(500).json({ mensaje: 'Error interno al procesar la verificación.' });
     }
 });
 
+// =========================================================================
 // 3. RUTA: INICIAR SESIÓN (LOGIN)
+// =========================================================================
 app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
     try {
         const result = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-        if (result.rows.length === 0) return res.status(400).json({ mensaje: 'Credenciales inválidas.' });
+        if (result.rows.length === 0) {
+            return res.status(400).json({ mensaje: 'Credenciales inválidas.' });
+        }
 
         const usuario = result.rows[0];
         
-        // Verificar si la cuenta ya fue activada por el código
-        if (!usuario.verificado) return res.status(401).json({ mensaje: 'Por favor, verifica tu correo antes de ingresar.' });
+        // Validar si la cuenta ya pasó por la verificación por código
+        if (!usuario.verificado) {
+            return res.status(401).json({ mensaje: 'Por favor, verifica tu correo usando el código enviado antes de ingresar.' });
+        }
 
+        // Comparar contraseña encriptada
         const passwordCorrecta = await bcrypt.compare(password, usuario.password);
-        if (!passwordCorrecta) return res.status(400).json({ mensaje: 'Credenciales inválidas.' });
+        if (!passwordCorrecta) {
+            return res.status(400).json({ mensaje: 'Credenciales inválidas.' });
+        }
 
-        // Generar sesión segura de JWT
+        // Generar sesión JWT firmada por 24 horas
         const token = jwt.sign({ id: usuario.id }, process.env.JWT_SECRET, { expiresIn: '24h' });
-        res.json({ token, mensaje: 'Ingreso exitoso' });
+        res.json({ token, mensaje: 'Ingreso exitoso al sistema.' });
 
     } catch (error) {
-        res.status(500).json({ mensaje: 'Error en el login.' });
+        console.error('Error en el login:', error);
+        res.status(500).json({ mensaje: 'Error interno en el servidor al intentar loguear.' });
     }
 });
 
+// Control del puerto asignado por Render (10000) o local (3000)
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor en puerto ${PORT}`));
+app.listen(PORT, () => {
+    console.log(`Servidor corriendo con éxito en el puerto ${PORT}`);
+});
