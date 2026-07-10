@@ -10,6 +10,7 @@ require('dotenv').config();
 const app = express();
 app.use(express.json());
 app.use(cors());
+app.use(express.static('public'));
 
 // Configuración de almacenamiento para fotos de perfil (en memoria para Railway)
 const storage = multer.memoryStorage();
