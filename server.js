@@ -8,60 +8,72 @@ require('dotenv').config();
 
 const app = express();
 
-// Middlewares estándar
 app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Configuración de la conexión a PostgreSQL en Railway
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
 
-// Probar conexión con la Base de Datos
-pool.connect((err, client, release) => {
-    if (err) {
-        return console.error('Error adquiriendo el cliente de la BD:', err.stack);
+// Asegurar que las columnas nuevas existan en la tabla usuarios si no existían
+const inicializarTabla = async () => {
+    try {
+        await pool.query(`
+            ALTER TABLE usuarios 
+            ADD COLUMN IF NOT EXISTS telefono VARCHAR(20),
+            ADD COLUMN IF NOT EXISTS foto_url TEXT;
+        `);
+        console.log('Columnas de perfil verificadas con éxito. 🛠️');
+    } catch (e) {
+        console.log('Nota sobre columnas adicionales:', e.message);
     }
-    console.log('Conexión exitosa a PostgreSQL en Railway 🚀');
-    release();
-});
+};
+inicializarTabla();
 
-// RUTA PRINCIPAL: Carga tu index.html al entrar al link de Railway
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Middleware para verificar JWT y proteger la edición de perfil
+const verificarToken = (req, res, next) => {
+    const token = req.headers['authorization'];
+    if (!token) return res.status(403).json({ mensaje: 'Token requerido.' });
+    
+    try {
+        const decoded = jwt.verify(token.split(' ')[1], process.env.JWT_SECRET || 'SECRETO_TEMPORAL');
+        req.usuarioId = decoded.id;
+        next();
+    } catch (err) {
+        return res.status(401).json({ mensaje: 'Token inválido o expirado.' });
+    }
+};
+
 // =========================================================================
-// 1. RUTA: REGISTRO MANUAL DE USUARIOS Y ENVÍO DE CÓDIGO (VÍA API HTTP DE BREVO)
+// RUTA: REGISTRO
 // =========================================================================
 app.post('/api/auth/register', async (req, res) => {
     const { nombre, apellido, email, fecha_nacimiento, password } = req.body;
     try {
-        // Verificar si el correo ya existe
         const usuarioExiste = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
         if (usuarioExiste.rows.length > 0) {
             return res.status(400).json({ mensaje: 'El correo electrónico ya está registrado.' });
         }
 
-        // Encriptar contraseña
         const salt = await bcrypt.genSalt(10);
         const passwordHasheada = await bcrypt.hash(password, salt);
-        
-        // Generar un código aleatorio de 6 dígitos
         const codigoVerificacion = Math.floor(100000 + Math.random() * 900000).toString();
 
-        // Insertar en la Base de Datos
         await pool.query(
             `INSERT INTO usuarios (nombre, apellido, email, fecha_nacimiento, password, auth_provider, codigo_verificacion) 
              VALUES ($1, $2, $3, $4, $5, 'manual', $6)`,
             [nombre, apellido, email, fecha_nacimiento, passwordHasheada, codigoVerificacion]
         );
 
-        // Envío del correo usando la API HTTP de Brevo (Permite correos ilimitados a cualquier dirección)
         try {
-            const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+            // Envío con Brevo HTTP API
+            await fetch('https://api.brevo.com/v3/smtp/email', {
                 method: 'POST',
                 headers: {
                     'accept': 'application/json',
@@ -69,99 +81,125 @@ app.post('/api/auth/register', async (req, res) => {
                     'content-type': 'application/json'
                 },
                 body: JSON.stringify({
-                    sender: { name: 'GeoAlerta', email: 'jesusmedrandam@gmail.com' }, // Tu correo actúa como remitente seguro
+                    sender: { name: 'GeoAlerta', email: 'jesusmedrandam@gmail.com' },
                     to: [{ email: email, name: nombre }],
                     subject: 'Código de Verificación - GeoAlerta',
-                    htmlContent: `<p>Hola <strong>${nombre}</strong>,</p><p>Tu código de verificación para GeoAlerta es: <span style="font-size: 18px; font-weight: bold; color: #4A90E2;">${codigoVerificacion}</span></p>`
+                    htmlContent: `<p>Tu código es: <strong>${codigoVerificacion}</strong></p>`
                 })
             });
-
-            const responseData = await response.json();
-
-            if (response.ok) {
-                console.log(`✅ Correo enviado vía Brevo con éxito a ${email}`);
-                return res.status(201).json({ mensaje: 'Usuario registrado con éxito. El código ha sido enviado a tu correo electrónico.' });
-            } else {
-                console.error('❌ Brevo rechazó la petición:', responseData);
-                throw new Error(responseData.message || 'Fallo en el servicio de mensajería Brevo.');
-            }
-
-        } catch (mailError) {
-            console.error('❌ Error detallado al conectar con Brevo:', mailError.message);
-            // Devolvemos 202 para levantar el modal de verificación de todas formas como plan de contingencia
-            return res.status(202).json({ 
-                mensaje: 'Usuario creado. Nota: El servicio de correos se está sincronizando. Por favor, solicita tu activación al administrador.' 
-            });
+            return res.status(201).json({ mensaje: 'Código enviado a tu correo.' });
+        } catch (e) {
+            return res.status(202).json({ mensaje: 'Usuario creado. Error de sincronización de correo.' });
         }
-
     } catch (error) {
-        console.error('Error general en registro:', error);
-        res.status(500).json({ mensaje: 'Error interno en el servidor al procesar el registro.' });
+        res.status(500).json({ mensaje: 'Error interno en el servidor.' });
     }
 });
 
 // =========================================================================
-// 2. RUTA: VERIFICAR EL CÓDIGO INTRODUCIDO POR EL USUARIO
+// RUTA: VERIFICACIÓN
 // =========================================================================
 app.post('/api/auth/verify', async (req, res) => {
     const { email, codigo } = req.body;
     try {
         const result = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-        if (result.rows.length === 0) {
-            return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
-        }
+        if (result.rows.length === 0) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
 
-        const usuario = result.rows[0];
-        
-        // Validar si el código coincide
-        if (usuario.codigo_verificacion === codigo) {
-            // Actualizar estado a verificado y limpiar el código usado
+        if (result.rows[0].codigo_verificacion === codigo) {
             await pool.query('UPDATE usuarios SET verificado = true, codigo_verificacion = NULL WHERE email = $1', [email]);
-            return res.json({ mensaje: 'Cuenta verificada exitosamente. Ya puedes iniciar sesión.' });
+            return res.json({ mensaje: 'Cuenta verificada exitosamente.' });
         } else {
-            return res.status(400).json({ mensaje: 'El código introducido es incorrecto.' });
+            return res.status(400).json({ mensaje: 'Código incorrecto.' });
         }
     } catch (error) {
-        console.error('Error en verification:', error);
-        res.status(500).json({ mensaje: 'Error interno al procesar la verificación.' });
+        res.status(500).json({ mensaje: 'Error al verificar.' });
     }
 });
 
 // =========================================================================
-// 3. RUTA: INICIAR SESIÓN (LOGIN)
+// RUTA: LOGIN (Modificada para devolver datos básicos del perfil)
 // =========================================================================
 app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
     try {
         const result = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-        if (result.rows.length === 0) {
-            return res.status(400).json({ mensaje: 'Credenciales inválidas.' });
-        }
+        if (result.rows.length === 0) return res.status(400).json({ mensaje: 'Credenciales inválidas.' });
 
         const usuario = result.rows[0];
-        
-        // Validar si la cuenta ya pasó por la verificación por código
-        if (!usuario.verificado) {
-            return res.status(401).json({ mensaje: 'Por favor, verifica tu correo usando el código enviado antes de ingresar.' });
-        }
+        if (!usuario.verificado) return res.status(401).json({ mensaje: 'Por favor, verifica tu correo primero.' });
 
-        // Comparar contraseña encriptada
         const passwordCorrecta = await bcrypt.compare(password, usuario.password);
-        if (!passwordCorrecta) {
-            return res.status(400).json({ mensaje: 'Credenciales inválidas.' });
-        }
+        if (!passwordCorrecta) return res.status(400).json({ mensaje: 'Credenciales inválidas.' });
 
-        // Generar sesión JWT firmada por 24 horas
-        const token = jwt.sign({ id: usuario.id }, process.env.JWT_SECRET, { expiresIn: '24h' });
-        res.json({ token, mensaje: 'Ingreso exitoso al sistema.' });
-
+        const token = jwt.sign({ id: usuario.id }, process.env.JWT_SECRET || 'SECRETO_TEMPORAL', { expiresIn: '24h' });
+        
+        res.json({ 
+            token, 
+            mensaje: 'Ingreso exitoso.',
+            usuario: {
+                nombre: usuario.nombre,
+                apellido: usuario.apellido,
+                email: usuario.email,
+                telefono: usuario.telefono || '',
+                foto_url: usuario.foto_url || ''
+            }
+        });
     } catch (error) {
-        console.error('Error en el login:', error);
-        res.status(500).json({ mensaje: 'Error interno en el servidor al intentar loguear.' });
+        res.status(500).json({ mensaje: 'Error en el servidor.' });
+    }
+});
+
+// =========================================================================
+// RUTA: RECUPERAR CONTRASEÑA (Olvidada)
+// =========================================================================
+app.post('/api/auth/forgot-password', async (req, res) => {
+    const { email } = req.body;
+    try {
+        const result = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
+        if (result.rows.length === 0) return res.status(404).json({ mensaje: 'El correo no está registrado.' });
+
+        const codigoRecuperacion = Math.floor(100000 + Math.random() * 900000).toString();
+        await pool.query('UPDATE usuarios SET codigo_verificacion = $1 WHERE email = $2', [codigoRecuperacion, email]);
+
+        try {
+            await fetch('https://api.brevo.com/v3/smtp/email', {
+                method: 'POST',
+                headers: {
+                    'accept': 'application/json',
+                    'api-key': process.env.BREVO_API_KEY,
+                    'content-type': 'application/json'
+                },
+                body: JSON.stringify({
+                    sender: { name: 'GeoAlerta', email: 'jesusmedrandam@gmail.com' },
+                    to: [{ email }],
+                    subject: 'Recuperación de Contraseña - GeoAlerta',
+                    htmlContent: `<p>Has solicitado restablecer tu contraseña. Tu código temporal de acceso es: <strong>${codigoRecuperacion}</strong></p>`
+                })
+            });
+            res.json({ mensaje: 'Se envió un código temporal de recuperación a tu correo.' });
+        } catch (e) {
+            res.status(500).json({ mensaje: 'Error al despachar el correo.' });
+        }
+    } catch (error) {
+        res.status(500).json({ mensaje: 'Error interno en el servidor.' });
+    }
+});
+
+// =========================================================================
+// RUTA: ACTUALIZAR PERFIL (Protegida)
+// =========================================================================
+app.put('/api/usuario/perfil', verificarToken, async (req, res) => {
+    const { nombre, apellido, telefono, foto_url } = req.body;
+    try {
+        await pool.query(
+            'UPDATE usuarios SET nombre = $1, apellido = $2, telefono = $3, foto_url = $4 WHERE id = $5',
+            [nombre, apellido, telefono, foto_url, req.usuarioId]
+        );
+        res.json({ mensaje: 'Perfil actualizado correctamente.' });
+    } catch (error) {
+        res.status(500).json({ mensaje: 'Error al actualizar el perfil.' });
     }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Servidor corriendo con éxito en el puerto ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Servidor en puerto ${PORT}`));
