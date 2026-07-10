@@ -2,9 +2,7 @@ const API_URL = window.location.origin;
 let usuarioActual = null;
 let emailEnVerificacion = '';
 
-// Al cargar el documento de manera segura
 document.addEventListener("DOMContentLoaded", () => {
-    
     // Controladores de Pestañas y Enlaces
     document.getElementById('tabLoginBtn').addEventListener('click', () => switchTab('login'));
     document.getElementById('tabRegisterBtn').addEventListener('click', () => switchTab('register'));
@@ -14,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
         btn.addEventListener('click', () => switchTab('login'));
     });
 
-    // Controladores de Envío de Formularios (REPARADOS)
+    // Controladores de Envío de Formularios
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
     document.getElementById('forgotForm').addEventListener('submit', handleForgot);
     document.getElementById('resetPasswordForm').addEventListener('submit', handleResetReal);
@@ -25,11 +23,11 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('btnSaveProfile').addEventListener('click', saveProfile);
     document.getElementById('btnLogout').addEventListener('click', logout);
     
-    // Listener para el menú desplegable del perfil
+    // Menú desplegable del perfil
     document.getElementById('userMenuBtn').addEventListener('click', toggleProfileDropdown);
     document.getElementById('profileDropdown').addEventListener('click', (e) => e.stopPropagation());
 
-    // Listener para el input de tipo archivo
+    // Listener para el input de archivo
     document.getElementById('profFotoFile').addEventListener('change', function() {
         const label = document.getElementById('fileNameLabel');
         if (this.files && this.files[0]) {
@@ -39,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Ocultar contraseñas dinámico
+    // Mostrar/ocultar contraseñas
     document.querySelectorAll('.toggle-password').forEach(button => {
         button.addEventListener('click', function() {
             const targetId = this.getAttribute('data-target');
@@ -56,7 +54,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-// Mensajes y Alertas
 function showNotification(message, type = 'error') {
     const alertDiv = document.getElementById('globalAlert');
     alertDiv.className = `custom-alert alert-${type}`;
@@ -76,7 +73,6 @@ function clearAllInputs() {
         }
     });
     document.getElementById('fileNameLabel').innerText = "Seleccionar foto de tu equipo";
-    document.getElementById('profFotoFile').value = '';
 }
 
 function switchTab(type) {
@@ -124,7 +120,7 @@ document.addEventListener('click', () => {
     if(dropdown) dropdown.classList.add('hidden');
 });
 
-// FUNCIONES HTTP (CONEXIONES AL BACKEND)
+// ACCIONES CON EL BACKEND
 
 async function handleLogin(e) {
     e.preventDefault();
@@ -146,10 +142,10 @@ async function handleLogin(e) {
             clearAllInputs();
             cargarDashboard();
         } else {
-            showNotification(data.mensaje, 'error');
+            showNotification(data.mensaje || 'Error en el inicio de sesión.', 'error');
         }
     } catch (err) {
-        showNotification('Los datos son incorrectos o el servidor no responde.', 'error');
+        showNotification('El servidor no responde correctamente.', 'error');
     }
 }
 
@@ -198,6 +194,8 @@ async function saveProfile() {
             cargarDashboard();
             document.getElementById('profileDropdown').classList.add('hidden');
             alert('Perfil guardado con éxito.');
+        } else {
+            alert(data.mensaje || 'Error al guardar perfil.');
         }
     } catch (e) {
         console.error("Error al guardar perfil:", e);
@@ -220,9 +218,11 @@ async function handleForgot(e) {
             switchTab('reset');
             showNotification(data.mensaje, 'success');
         } else {
-            showNotification(data.mensaje, 'error');
+            showNotification(data.mensaje || 'Error al solicitar el código.', 'error');
         }
-    } catch (err) { showNotification('Error al procesar la solicitud.', 'error'); }
+    } catch (err) { 
+        showNotification('Error al procesar la solicitud en el servidor.', 'error'); 
+    }
 }
 
 async function handleResetReal(e) {
@@ -243,7 +243,7 @@ async function handleResetReal(e) {
             switchTab('login');
             showNotification(data.mensaje, 'success');
         } else {
-            showNotification(data.mensaje, 'error');
+            showNotification(data.mensaje || 'Error al restablecer.', 'error');
         }
     } catch (err) {
         showNotification('No se pudo actualizar la contraseña.', 'error');
@@ -267,18 +267,20 @@ async function handleRegister(e) {
         });
         const data = await res.json();
 
-        if (res.status === 201 || res.status === 202) {
+        if (res.ok) {
             emailEnVerificacion = email;
             document.getElementById('registerForm').classList.add('hidden');
             document.getElementById('authTabs').classList.add('hidden');
             document.getElementById('oauthContainer').classList.add('hidden');
             document.getElementById('dividerText').classList.add('hidden');
             document.getElementById('verifyForm').classList.remove('hidden');
-            showNotification('Usuario registrado. Ingresa tu código.', 'success');
+            showNotification(data.mensaje, 'success');
         } else {
-            showNotification(data.mensaje, 'error');
+            showNotification(data.mensaje || 'Error al registrar usuario.', 'error');
         }
-    } catch (err) { showNotification('Error de red.', 'error'); }
+    } catch (err) { 
+        showNotification('Error al procesar la solicitud en el servidor.', 'error'); 
+    }
 }
 
 async function handleVerify(e) {
@@ -296,9 +298,11 @@ async function handleVerify(e) {
             switchTab('login');
             showNotification(data.mensaje, 'success');
         } else {
-            showNotification(data.mensaje, 'error');
+            showNotification(data.mensaje || 'Código incorrecto.', 'error');
         }
-    } catch (err) { showNotification('Error.', 'error'); }
+    } catch (err) { 
+        showNotification('Error de red al verificar.', 'error'); 
+    }
 }
 
 function logout() {
