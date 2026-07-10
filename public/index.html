@@ -1,0 +1,32 @@
+// Capturar el formulario de Registro del HTML
+document.getElementById('form-register').addEventListener('submit', async (e) => {
+    e.preventDefault(); // Evita que la página se recargue
+
+    // Obtener los datos escritos por el usuario
+    const nombre = document.getElementById('reg-nombre').value;
+    const apellido = document.getElementById('reg-apellido').value;
+    const email = document.getElementById('reg-email').value;
+    const fecha_nacimiento = document.getElementById('reg-date').value;
+    const password = document.getElementById('reg-password').value;
+
+    try {
+        // Enviar los datos al Backend (reemplaza localhost por tu URL de Render del backend si ya lo subiste)
+        const respuesta = await fetch('http://localhost:3000/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre, apellido, email, fecha_nacimiento, password })
+        });
+
+        const resultado = await respuesta.json();
+
+        if (respuesta.ok) {
+            alert('¡Registro exitoso! ' + resultado.mensaje);
+            // Aquí podrías redirigirlo a la pantalla para colocar el código de verificación
+        } else {
+            alert('Error: ' + resultado.mensaje);
+        }
+    } catch (error) {
+        console.error('Error al conectar con el servidor:', error);
+        alert('No se pudo conectar con el servidor.');
+    }
+});
