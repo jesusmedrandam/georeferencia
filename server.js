@@ -27,17 +27,21 @@ const JWT_SECRET = process.env.JWT_SECRET || 'mi_clave_secreta_geoalerta';
 
 
 
-// === CONFIGURACIÓN DE BREVO CORREGIDA ===
 const transporter = nodemailer.createTransport({
-    host: 'smtp-relay.brevo.com',
+    host: "smtp-relay.brevo.com",
     port: 587,
-    secure: false, 
+    secure: false,
     auth: {
-        user: 'jesusmedrandam@gmail.com', // Tu usuario verificado en Brevo
-        pass: process.env.BREVO_API_KEY   // Forzamos el uso de tu clave xsmtpsib-...
-    },
-    tls: {
-        rejectUnauthorized: false
+        user: process.env.BREVO_SMTP_USER,
+        pass: process.env.BREVO_API_KEY
+    }
+});
+
+transporter.verify((error, success) => {
+    if (error) {
+        console.error("❌ Error SMTP:", error);
+    } else {
+        console.log("✅ SMTP conectado correctamente");
     }
 });
 
@@ -124,12 +128,21 @@ app.post('/api/auth/register', async (req, res) => {
         );
 
         // CORREGIDO: Remitente estricto para evitar bloqueos de Brevo
-        transporter.sendMail({
-            from: '"GeoAlerta" <jesusmedrandam@gmail.com>',
-            to: email,
-            subject: 'Código de Verificación - GeoAlerta',
-            text: `Tu código de verificación es: ${codigo}`
-        }).catch(err => console.error("Aviso: El correo no se pudo enviar, pero el usuario se guardó:", err.message));
+try {
+    const info = await transporter.sendMail({
+        from: '"GeoAlerta" <jesusmedrandam@gmail.com>',
+        to: email,
+        subject: 'Código de Verificación - GeoAlerta',
+        text: `Tu código de verificación es: ${codigo}`
+    });
+
+    console.log("✅ Correo enviado correctamente:", info.response);
+
+} catch (err) {
+    console.error("❌ Error enviando correo de verificación:");
+    console.error(err);
+}
+
 
         return res.status(201).json({ mensaje: 'Usuario creado. Introduce el código enviado a tu correo.' });
     } catch (err) {
@@ -192,25 +205,47 @@ app.post('/api/auth/login', async (req, res) => {
 // 4. SOLICITAR RECUPERACIÓN DE CONTRASEÑA
 app.post('/api/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
+
     try {
-        const result = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-        if (result.rows.length === 0) return res.status(400).json({ mensaje: 'Este correo electrónico no está registrado.' });
+        const result = await pool.query(
+            'SELECT * FROM usuarios WHERE email = $1',
+            [email]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(400).json({
+                mensaje: 'Este correo electrónico no está registrado.'
+            });
+        }
 
         const codigo = Math.floor(100000 + Math.random() * 900000).toString();
-        await pool.query('UPDATE usuarios SET codigo_verificacion = $1 WHERE email = $2', [codigo, email]);
 
-        // CORREGIDO: Remitente estricto para evitar bloqueos de Brevo
-        transporter.sendMail({
+        await pool.query(
+            'UPDATE usuarios SET codigo_verificacion = $1 WHERE email = $2',
+            [codigo, email]
+        );
+
+        // Enviar correo
+        const info = await transporter.sendMail({
             from: '"GeoAlerta" <jesusmedrandam@gmail.com>',
             to: email,
             subject: 'Restablecer Contraseña - GeoAlerta',
             text: `Tu código para cambiar la contraseña es: ${codigo}`
-        }).catch(err => console.error("Aviso: No se envió el correo de recuperación:", err.message));
+        });
 
-        return res.json({ mensaje: 'Código de recuperación generado.' });
+        console.log("✅ Correo enviado correctamente:", info.response);
+
+        return res.json({
+            mensaje: 'Código de recuperación enviado correctamente.'
+        });
+
     } catch (err) {
+        console.error("❌ Error al enviar correo de recuperación:");
         console.error(err);
-        return res.status(500).json({ mensaje: 'Error en el servidor al procesar la solicitud.' });
+
+        return res.status(500).json({
+            mensaje: 'Error en el servidor al procesar la solicitud.'
+        });
     }
 });
 
