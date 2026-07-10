@@ -22,6 +22,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('registerForm').addEventListener('submit', handleRegister);
     document.getElementById('verifyForm').addEventListener('submit', handleVerify);
 
+    // Controlador para Reenviar Código
+    document.getElementById('btnResendCode').addEventListener('click', handleResendCode);
+
     // Guardar cambios y perfil
     document.getElementById('btnSaveProfile').addEventListener('click', (e) => {
         e.preventDefault();
@@ -148,6 +151,30 @@ async function handleLogin(e) {
     }
 }
 
+// NUEVO: Envía una petición de reenvío utilizando la ruta de forgot-password
+async function handleResendCode() {
+    clearNotification();
+    if (!emailEnVerificacion) {
+        showNotification('No se detectó un correo en proceso de verificación.', 'error');
+        return;
+    }
+    try {
+        const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: emailEnVerificacion })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showNotification('¡Un nuevo código ha sido enviado a tu correo!', 'success');
+        } else {
+            showNotification(data.mensaje || 'No se pudo reenviar el código.', 'error');
+        }
+    } catch (err) {
+        showNotification('Error al intentar reenviar el código.', 'error');
+    }
+}
+
 function cargarDashboard() {
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('dashboardScreen').classList.remove('hidden');
@@ -166,7 +193,6 @@ function cargarDashboard() {
     document.getElementById('profTelefono').value = usuarioActual.telefono || '';
 }
 
-// CORREGIDO: Sin Content-Type forzado para que Multer procese la imagen
 async function saveProfile() {
     const token = localStorage.getItem('token');
     const nombre = document.getElementById('profNombre').value;
@@ -185,7 +211,7 @@ async function saveProfile() {
     try {
         const res = await fetch(`${API_URL}/api/usuario/perfil`, {
             method: 'PUT',
-            headers: { 'Authorization': `Bearer ${token}` }, // Dejar que el navegador ponga el Boundary solo
+            headers: { 'Authorization': `Bearer ${token}` },
             body: formData
         });
         const data = await res.json();
@@ -305,6 +331,12 @@ function toggleProfileDropdown(event) {
     event.stopPropagation();
     document.getElementById('profileDropdown').classList.toggle('hidden');
 }
+
+// Modificado para ocultar dropdown de perfil y limpiar token
+document.addEventListener('click', () => {
+    const dropdown = document.getElementById('profileDropdown');
+    if (dropdown) dropdown.classList.add('hidden');
+});
 
 function logout() {
     localStorage.removeItem('token');
