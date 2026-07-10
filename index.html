@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoAlerta - Sistema de Alertas de Emergencia</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <title>GeoAlerta - Centro de Emergencias</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -19,490 +19,230 @@
             --input-bg: #030712;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; overflow-x: hidden; }
+        .main-container { display: flex; width: 100%; min-height: 100vh; }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            overflow-x: hidden;
-        }
-
-        .main-container {
-            display: flex;
-            width: 100%;
-            min-height: 100vh;
-        }
-
-        /* COLUMNA IZQUIERDA: LANDING INFO */
+        /* COLUMNA IZQUIERDA */
         .info-section {
             flex: 1.2;
             background: linear-gradient(135deg, rgba(11, 15, 25, 0.9), rgba(23, 16, 16, 0.95)), 
                         url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200') no-repeat center center/cover;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 80px;
-            border-right: 1px solid var(--border-color);
-            position: relative;
+            display: flex; flex-direction: column; justify-content: center; padding: 80px; border-right: 1px solid var(--border-color);
         }
+        .brand-wrapper { display: flex; align-items: center; gap: 15px; margin-bottom: 40px; }
+        .brand-logo-img { width: 60px; height: 60px; object-fit: contain; border-radius: 14px; }
+        .brand-name { font-size: 32px; font-weight: 800; background: linear-gradient(to right, #fff, var(--text-muted)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero-title { font-size: 56px; font-weight: 800; line-height: 1.1; margin-bottom: 24px; letter-spacing: -2px; }
+        .hero-subtitle { font-size: 18px; color: var(--text-muted); line-height: 1.6; max-width: 550px; margin-bottom: 40px; }
+        .features-list { display: flex; flex-direction: column; gap: 20px; }
+        .feature-item { display: flex; align-items: flex-start; gap: 15px; }
+        .feature-icon { color: var(--accent-primary); font-size: 20px; margin-top: 3px; }
+        .feature-text h4 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .feature-text p { font-size: 14px; color: var(--text-muted); }
 
-        .brand-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 40px;
-        }
+        /* COLUMNA DERECHA */
+        .auth-section { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px; background-color: #030712; }
+        .auth-card { width: 100%; max-width: 420px; background-color: var(--card-bg); border-radius: 24px; padding: 40px; border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); }
+        .auth-tabs { display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 30px; }
+        .tab-btn { flex: 1; background: none; border: none; color: var(--text-muted); font-size: 16px; font-weight: 600; padding: 12px 0; cursor: pointer; text-align: center; position: relative; }
+        .tab-btn.active { color: var(--text-main); }
+        .tab-btn.active::after { content: ''; position: absolute; bottom: -1px; left: 25%; width: 50%; height: 3px; background-color: var(--accent-primary); border-radius: 3px; }
 
-        .brand-logo-img {
-            width: 60px;
-            height: 60px;
-            object-fit: contain;
-            border-radius: 14px;
-        }
-
-        .brand-name {
-            font-size: 32px;
-            font-weight: 800;
-            letter-spacing: -1px;
-            background: linear-gradient(to right, #fff, var(--text-muted));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .hero-title {
-            font-size: 56px;
-            font-weight: 800;
-            line-height: 1.1;
-            margin-bottom: 24px;
-            letter-spacing: -2px;
-        }
-
-        .hero-subtitle {
-            font-size: 18px;
-            color: var(--text-muted);
-            line-height: 1.6;
-            max-width: 550px;
-            margin-bottom: 40px;
-        }
-
-        .features-list {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .feature-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 15px;
-        }
-
-        .feature-icon {
-            color: var(--accent-primary);
-            font-size: 20px;
-            margin-top: 3px;
-        }
-
-        .feature-text h4 {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .feature-text p {
-            font-size: 14px;
-            color: var(--text-muted);
-        }
-
-        /* COLUMNA DERECHA: AUTH PANEL */
-        .auth-section {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
-            background-color: #030712;
-        }
-
-        .auth-card {
-            width: 100%;
-            max-width: 420px;
-            background-color: var(--card-bg);
-            border-radius: 24px;
-            padding: 40px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-        }
-
-        .auth-tabs {
-            display: flex;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 30px;
-        }
-
-        .tab-btn {
-            flex: 1;
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            font-size: 16px;
-            font-weight: 600;
-            padding: 12px 0;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: center;
-            position: relative;
-        }
-
-        .tab-btn.active {
-            color: var(--text-main);
-        }
-
-        .tab-btn.active::after {
-            content: '';
-            position: absolute;
-            bottom: -1px;
-            left: 25%;
-            width: 50%;
-            height: 3px;
-            background-color: var(--accent-primary);
-            border-radius: 3px;
-        }
-
-        /* Botones OAuth Rediseñados */
-        .oauth-buttons-container {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-
-        .oauth-btn {
-            width: 100%;
-            border: none;
-            padding: 12px 16px;
-            border-radius: 99px;
-            font-size: 15px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            cursor: pointer;
-            transition: opacity 0.2s ease;
-        }
-
-        .oauth-btn:hover {
-            opacity: 0.9;
-        }
-
-        .btn-google {
-            background-color: var(--text-main);
-            color: #000;
-        }
-
-        .btn-facebook {
-            background-color: #1877f2;
-            color: white;
-        }
-
-        .divider {
-            display: flex;
-            align-items: center;
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 13px;
-            margin-bottom: 24px;
-        }
-
-        .divider::before, .divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid var(--border-color);
-        }
-
+        .oauth-buttons-container { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+        .oauth-btn { width: 100%; border: none; padding: 12px 16px; border-radius: 99px; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 12px; cursor: pointer; transition: opacity 0.2s ease; }
+        .btn-google { background-color: var(--text-main); color: #000; }
+        .btn-facebook { background-color: #1877f2; color: white; }
+        
+        .divider { display: flex; align-items: center; text-align: center; color: var(--text-muted); font-size: 13px; margin-bottom: 24px; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid var(--border-color); }
         .divider:not(:empty)::before { margin-right: .5em; }
         .divider:not(:empty)::after { margin-left: .5em; }
 
-        /* Formularios e Inputs */
-        .form-group {
-            margin-bottom: 20px;
-            position: relative;
-        }
+        .form-group { margin-bottom: 20px; position: relative; }
+        .form-group label { display: block; font-size: 13px; font-weight: 500; color: var(--text-muted); margin-bottom: 8px; }
+        .input-wrapper { position: relative; display: flex; align-items: center; }
+        .input-wrapper i.input-icon { position: absolute; left: 16px; color: var(--text-muted); font-size: 16px; }
+        .form-control { width: 100%; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 14px 16px 14px 45px; border-radius: 12px; font-size: 15px; outline: none; }
+        .form-control:focus { border-color: var(--accent-primary); }
+        
+        .toggle-password { position: absolute; right: 16px; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; }
+        .submit-btn { width: 100%; background-color: var(--accent-primary); color: white; border: none; padding: 14px; border-radius: 99px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+        .submit-btn:hover { background-color: var(--accent-hover); }
 
-        .form-group label {
-            display: block;
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-muted);
-            margin-bottom: 8px;
-        }
+        .forgot-link { display: block; text-align: right; font-size: 13px; color: var(--text-muted); margin-top: -10px; margin-bottom: 20px; text-decoration: none; cursor: pointer; }
+        .forgot-link:hover { color: var(--accent-primary); }
 
-        .input-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
+        /* PANTALLA DASHBOARD */
+        .dashboard-screen { width: 100%; min-height: 100vh; background-color: #030712; display: flex; flex-direction: column; }
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); position: relative; }
+        
+        /* PERFIL ESQUINA SUPERIOR DERECHA */
+        .user-profile-menu { display: flex; align-items: center; gap: 12px; cursor: pointer; position: relative; }
+        .user-avatar { width: 42px; height: 42px; border-radius: 50%; background-color: var(--accent-primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid var(--border-color); object-fit: cover; }
+        
+        .dropdown-profile { position: absolute; top: 55px; right: 0; width: 280px; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        
+        .dashboard-content { padding: 40px; display: flex; flex-direction: column; gap: 30px; max-width: 1200px; margin: 0 auto; width: 100%; }
+        .alert-box { background: rgba(239, 68, 68, 0.1); border: 1px solid var(--accent-primary); border-radius: 16px; padding: 25px; display: flex; align-items: center; gap: 20px; }
 
-        .input-wrapper i.input-icon {
-            position: absolute;
-            left: 16px;
-            color: var(--text-muted);
-            font-size: 16px;
-        }
-
-        .form-control {
-            width: 100%;
-            background-color: var(--input-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            padding: 14px 16px 14px 45px;
-            border-radius: 12px;
-            font-size: 15px;
-            outline: none;
-            transition: all 0.2s ease;
-        }
-
-        .form-control:focus {
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
-        }
-
-        .toggle-password {
-            position: absolute;
-            right: 16px;
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            font-size: 16px;
-            z-index: 10;
-        }
-
-        .toggle-password:hover {
-            color: var(--text-main);
-        }
-
-        .submit-btn {
-            width: 100%;
-            background-color: var(--accent-primary);
-            color: white;
-            border: none;
-            padding: 14px;
-            border-radius: 99px;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background 0.2s ease;
-            margin-top: 10px;
-        }
-
-        .submit-btn:hover {
-            background-color: var(--accent-hover);
-        }
-
-        /* Vista de Dashboard Interno Simple */
-        .dashboard-container {
-            text-align: center;
-            padding: 20px 10px;
-        }
-
-        .welcome-avatar {
-            width: 80px;
-            height: 80px;
-            background-color: rgba(239, 68, 68, 0.1);
-            color: var(--accent-primary);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 36px;
-            margin: 0 auto 20px;
-            border: 2px dashed var(--accent-primary);
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        @media (max-width: 968px) {
-            .main-container { flex-direction: column; }
-            .info-section { padding: 40px; min-height: auto; }
-            .hero-title { font-size: 36px; }
-            .auth-section { padding: 20px; }
-        }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <div class="main-container">
-        
+    <!-- CONTENEDOR 1: LOGIN, REGISTRO Y RECUPERACIÓN -->
+    <div class="main-container" id="loginScreen">
         <div class="info-section">
             <div class="brand-wrapper">
                 <img src="logo.png" alt="GeoAlerta Logo" class="brand-logo-img" onerror="this.style.display='none';">
                 <div class="brand-name">GeoAlerta</div>
             </div>
-            
             <h1 class="hero-title">Lo que está pasando ahora.</h1>
-            <p class="hero-subtitle">Únete hoy a la plataforma inteligente de respuesta inmediata. Informa incidentes, recibe alertas en tiempo real basados en tu geolocalización y protege a tu comunidad.</p>
-            
-            <div class="features-list">
-                <div class="feature-item">
-                    <i class="fa-solid fa-bolt feature-icon"></i>
-                    <div class="feature-text">
-                        <h4>Alertas Instantáneas</h4>
-                        <p>Notificaciones masivas y correos automatizados en tiempo récord.</p>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <i class="fa-solid fa-map-location-dot feature-icon"></i>
-                    <div class="feature-text">
-                        <h4>Georreferenciación Precisa</h4>
-                        <p>Ubicación geoespacial mapeada directamente vinculada a centros de control.</p>
-                    </div>
-                </div>
-            </div>
+            <p class="hero-subtitle">Únete hoy a la plataforma inteligente de respuesta inmediata ante situaciones de emergencia y desastres.</p>
         </div>
 
         <div class="auth-section">
             <div class="auth-card">
-                
-                <div id="authFormsContainer">
-                    <div class="auth-tabs" id="authTabs">
-                        <button class="tab-btn active" onclick="switchTab('login')">Iniciar Sesión</button>
-                        <button class="tab-btn" onclick="switchTab('register')">Crear Cuenta</button>
-                    </div>
-
-                    <div class="oauth-buttons-container" id="oauthContainer">
-                        <button class="oauth-btn btn-google" onclick="alert('Autenticación con Google disponible próximamente.')">
-                            <i class="fa-brands fa-google" style="font-size: 18px;"></i>
-                            Continuar con Google
-                        </button>
-                        <button class="oauth-btn btn-facebook" onclick="alert('Autenticación con Facebook disponible próximamente.')">
-                            <i class="fa-brands fa-facebook-f" style="font-size: 18px;"></i>
-                            Continuar con Facebook
-                        </button>
-                    </div>
-
-                    <div class="divider" id="dividerText">o utiliza tu correo</div>
-
-                    <form id="loginForm" onsubmit="handleLogin(event)">
-                        <div class="form-group">
-                            <label>Correo Electrónico</label>
-                            <div class="input-wrapper">
-                                <i class="fa-solid fa-envelope input-icon"></i>
-                                <input type="email" id="loginEmail" class="form-control" placeholder="nombre@ejemplo.com" required>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Contraseña</label>
-                            <div class="input-wrapper">
-                                <i class="fa-solid fa-lock input-icon"></i>
-                                <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
-                                <button type="button" class="toggle-password" onclick="togglePasswordVisibility('loginPassword', this)">
-                                    <i class="fa-solid fa-eye"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <button type="submit" class="submit-btn">Ingresar</button>
-                    </form>
-
-                    <form id="registerForm" class="hidden" onsubmit="handleRegister(event)">
-                        <div class="form-group">
-                            <label>Nombre</label>
-                            <div class="input-wrapper">
-                                <i class="fa-solid fa-user input-icon"></i>
-                                <input type="text" id="regNombre" class="form-control" placeholder="Tu nombre" required>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Apellido</label>
-                            <div class="input-wrapper">
-                                <i class="fa-solid fa-user-tag input-icon"></i>
-                                <input type="text" id="regApellido" class="form-control" placeholder="Tu apellido" required>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Correo Electrónico</label>
-                            <div class="input-wrapper">
-                                <i class="fa-solid fa-envelope input-icon"></i>
-                                <input type="email" id="regEmail" class="form-control" placeholder="nombre@ejemplo.com" required>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Fecha de Nacimiento</label>
-                            <div class="input-wrapper">
-                                <i class="fa-solid fa-calendar-days input-icon"></i>
-                                <input type="date" id="regFecha" class="form-control" required>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Contraseña</label>
-                            <div class="input-wrapper">
-                                <i class="fa-solid fa-lock input-icon"></i>
-                                <input type="password" id="regPassword" class="form-control" placeholder="Mínimo 6 caracteres" required>
-                                <button type="button" class="toggle-password" onclick="togglePasswordVisibility('regPassword', this)">
-                                    <i class="fa-solid fa-eye"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <button type="submit" class="submit-btn">Registrarse y Verificar</button>
-                    </form>
-
-                    <form id="verifyForm" class="hidden" onsubmit="handleVerify(event)">
-                        <div style="text-align: center; margin-bottom: 20px;">
-                            <i class="fa-solid fa-shield-halved" style="font-size: 40px; color: var(--accent-primary); margin-bottom: 15px;"></i>
-                            <h3 style="font-size: 18px; margin-bottom: 8px;">Verifica tu Correo</h3>
-                            <p style="font-size: 13px; color: var(--text-muted)">Ingresa el código de verificación enviado por el sistema.</p>
-                        </div>
-                        <div class="form-group">
-                            <label>Código de 6 dígitos</label>
-                            <div class="input-wrapper">
-                                <i class="fa-solid fa-key input-icon"></i>
-                                <input type="text" id="verifyCode" class="form-control" placeholder="123456" maxlength="6" style="text-align: center; letter-spacing: 4px; font-weight: bold;" required>
-                            </div>
-                        </div>
-                        <button type="submit" class="submit-btn">Confirmar Cuenta</button>
-                    </form>
+                <!-- Pestañas -->
+                <div class="auth-tabs" id="authTabs">
+                    <button class="tab-btn active" onclick="switchTab('login')">Iniciar Sesión</button>
+                    <button class="tab-btn" onclick="switchTab('register')">Crear Cuenta</button>
                 </div>
 
-                <div id="dashboardSection" class="dashboard-container hidden">
-                    <div class="welcome-avatar">
-                        <i class="fa-solid fa-user-shield"></i>
-                    </div>
-                    <h2 style="font-size: 26px; font-weight: 800; margin-bottom: 10px;">¡Hola, bienvenido!</h2>
-                    <p id="welcomeUserName" style="font-size: 18px; color: var(--accent-primary); font-weight: 600; margin-bottom: 25px;"></p>
-                    <p style="font-size: 14px; color: var(--text-muted); line-height: 1.5; margin-bottom: 30px;">
-                        Has ingresado con éxito a la consola de control de GeoAlerta. Actualmente tu cuenta se encuentra activa en el servidor seguro.
-                    </p>
-                    <button class="submit-btn" onclick="logout()" style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-muted);">
-                        Cerrar Sesión
+                <div class="oauth-buttons-container" id="oauthContainer">
+                    <button class="oauth-btn btn-google" onclick="alert('Google disponible pronto.')">
+                        <i class="fa-brands fa-google"></i> Continuar con Google
+                    </button>
+                    <button class="oauth-btn btn-facebook" onclick="alert('Facebook disponible pronto.')">
+                        <i class="fa-brands fa-facebook-f"></i> Continuar con Facebook
                     </button>
                 </div>
 
+                <div class="divider" id="dividerText">o con tu correo</div>
+
+                <!-- FORMULARIO DE LOGIN -->
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label>Correo Electrónico</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-envelope input-icon"></i>
+                            <input type="email" id="loginEmail" class="form-control" placeholder="nombre@ejemplo.com" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-lock input-icon"></i>
+                            <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('loginPassword', this)">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <span class="forgot-link" onclick="switchTab('forgot')">¿Olvidaste tu contraseña?</span>
+                    <button type="submit" class="submit-btn">Ingresar</button>
+                </form>
+
+                <!-- FORMULARIO OLVIDÓ CONTRASEÑA -->
+                <form id="forgotForm" class="hidden" onsubmit="handleForgot(event)">
+                    <h3 style="margin-bottom: 15px; font-size: 18px;">Recuperar Acceso</h3>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Ingresa tu correo para enviarte un código de reinicio temporal.</p>
+                    <div class="form-group">
+                        <label>Correo Electrónico</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-envelope input-icon"></i>
+                            <input type="email" id="forgotEmail" class="form-control" placeholder="nombre@ejemplo.com" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="submit-btn">Enviar Código</button>
+                    <span class="forgot-link" onclick="switchTab('login')" style="text-align: center; margin-top: 15px;">Volver al Login</span>
+                </form>
+
+                <!-- REGISTRO -->
+                <form id="registerForm" class="hidden" onsubmit="handleRegister(event)">
+                    <div class="form-group"><label>Nombre</label><div class="input-wrapper"><i class="fa-solid fa-user input-icon"></i><input type="text" id="regNombre" class="form-control" required></div></div>
+                    <div class="form-group"><label>Apellido</label><div class="input-wrapper"><i class="fa-solid fa-user input-icon"></i><input type="text" id="regApellido" class="form-control" required></div></div>
+                    <div class="form-group"><label>Correo Electrónico</label><div class="input-wrapper"><i class="fa-solid fa-envelope input-icon"></i><input type="email" id="regEmail" class="form-control" required></div></div>
+                    <div class="form-group"><label>Fecha de Nacimiento</label><div class="input-wrapper"><i class="fa-solid fa-calendar input-icon"></i><input type="date" id="regFecha" class="form-control" required></div></div>
+                    <div class="form-group"><label>Contraseña</label><div class="input-wrapper"><i class="fa-solid fa-lock input-icon"></i><input type="password" id="regPassword" class="form-control" required><button type="button" class="toggle-password" onclick="togglePasswordVisibility('regPassword', this)"><i class="fa-solid fa-eye"></i></button></div></div>
+                    <button type="submit" class="submit-btn">Registrarse</button>
+                </form>
+
+                <!-- VERIFICACIÓN (OTP) -->
+                <form id="verifyForm" class="hidden" onsubmit="handleVerify(event)">
+                    <div class="form-group"><label>Código de 6 dígitos</label><div class="input-wrapper"><i class="fa-solid fa-key input-icon"></i><input type="text" id="verifyCode" class="form-control" placeholder="123456" maxlength="6" required></div></div>
+                    <button type="submit" class="submit-btn">Confirmar Cuenta</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTENEDOR 2: NUEVA PANTALLA DE DASHBOARD COMPLETO -->
+    <div class="dashboard-screen hidden" id="dashboardScreen">
+        <div class="navbar">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <img src="logo.png" alt="Logo" style="width: 35px; height: 35px; object-fit: contain;">
+                <span style="font-weight: 800; font-size: 20px;">GeoAlerta Panel</span>
+            </div>
+            
+            <!-- ESQUINA SUPERIOR DERECHA: MENÚ DE PERFIL -->
+            <div class="user-profile-menu" onclick="toggleProfileDropdown(event)">
+                <span id="navUserName" style="font-size: 14px; font-weight: 500;">Usuario</span>
+                <img id="navAvatar" src="" class="user-avatar" onerror="this.src='https://ui-avatars.com/api/?name=User&background=ef4444&color=fff';">
+                
+                <!-- MENU DESPLEGABLE -->
+                <div class="dropdown-profile hidden" id="profileDropdown" onclick="event.stopPropagation()">
+                    <h4 style="margin-bottom: 15px; font-size: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Editar Mi Perfil</h4>
+                    
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" id="profNombre" class="form-control" style="padding: 8px 12px;">
+                    </div>
+                    <div class="form-group">
+                        <label>Apellido</label>
+                        <input type="text" id="profApellido" class="form-control" style="padding: 8px 12px;">
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="text" id="profTelefono" class="form-control" style="padding: 8px 12px;" placeholder="+593...">
+                    </div>
+                    <div class="form-group">
+                        <label>URL Foto de Perfil</label>
+                        <input type="text" id="profFoto" class="form-control" style="padding: 8px 12px;" placeholder="https://...">
+                    </div>
+                    
+                    <button class="submit-btn" onclick="saveProfile()" style="padding: 8px; font-size: 14px; margin-bottom: 10px;">Guardar Cambios</button>
+                    <button class="submit-btn" onclick="logout()" style="padding: 8px; font-size: 14px; background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);">Cerrar Sesión</button>
+                </div>
             </div>
         </div>
 
+        <div class="dashboard-content">
+            <h1 style="font-size: 32px; font-weight: 800;">Bienvenido de vuelta, <span id="dashWelcomeName" style="color: var(--accent-primary);"></span></h1>
+            
+            <div class="alert-box">
+                <i class="fa-solid fa-triangle-exclamation" style="font-size: 36px; color: var(--accent-primary);"></i>
+                <div>
+                    <h3 style="font-size: 18px; margin-bottom: 4px;">Monitoreo de Emergencias Activo</h3>
+                    <p style="color: var(--text-muted); font-size: 14px;">El sistema de alertas georreferenciadas se encuentra en línea y listo para reportar incidentes.</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
         const API_URL = window.location.origin;
+        let usuarioActual = null;
+        let emailEnVerificacion = '';
 
-        // Cambiar entre pestañas
         function switchTab(type) {
             const tabs = document.querySelectorAll('.tab-btn');
-            tabs.forEach(tab => tab.classList.remove('active'));
-            
+            tabs.forEach(t => t.classList.remove('active'));
             document.getElementById('loginForm').classList.add('hidden');
             document.getElementById('registerForm').classList.add('hidden');
             document.getElementById('verifyForm').classList.add('hidden');
+            document.getElementById('forgotForm').classList.add('hidden');
             document.getElementById('authTabs').classList.remove('hidden');
             document.getElementById('oauthContainer').classList.remove('hidden');
             document.getElementById('dividerText').classList.remove('hidden');
@@ -513,13 +253,17 @@
             } else if (type === 'register') {
                 tabs[1].classList.add('active');
                 document.getElementById('registerForm').classList.remove('hidden');
+            } else if (type === 'forgot') {
+                document.getElementById('authTabs').classList.add('hidden');
+                document.getElementById('oauthContainer').classList.add('hidden');
+                document.getElementById('dividerText').classList.add('hidden');
+                document.getElementById('forgotForm').classList.remove('hidden');
             }
         }
 
-        // Mostrar / Ocultar contraseña funcional
-        function togglePasswordVisibility(inputId, button) {
-            const input = document.getElementById(inputId);
-            const icon = button.querySelector('i');
+        function togglePasswordVisibility(id, btn) {
+            const input = document.getElementById(id);
+            const icon = btn.querySelector('i');
             if (input.type === 'password') {
                 input.type = 'text';
                 icon.className = 'fa-solid fa-eye-slash';
@@ -529,68 +273,17 @@
             }
         }
 
-        let emailEnVerificacion = '';
-
-        // 1. GESTIONAR REGISTRO 
-        async function handleRegister(event) {
-            event.preventDefault();
-            const nombre = document.getElementById('regNombre').value;
-            const apellido = document.getElementById('regApellido').value;
-            const email = document.getElementById('regEmail').value;
-            const fecha_nacimiento = document.getElementById('regFecha').value;
-            const password = document.getElementById('regPassword').value;
-
-            try {
-                const response = await fetch(`${API_URL}/api/auth/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nombre, apellido, email, fecha_nacimiento, password })
-                });
-
-                const data = await response.json();
-                alert(data.mensaje);
-
-                if (response.status === 201 || response.status === 202) {
-                    emailEnVerificacion = email;
-                    document.getElementById('registerForm').classList.add('hidden');
-                    document.getElementById('authTabs').classList.add('hidden');
-                    document.getElementById('oauthContainer').classList.add('hidden');
-                    document.getElementById('dividerText').classList.add('hidden');
-                    document.getElementById('verifyForm').classList.remove('hidden');
-                }
-            } catch (err) {
-                console.error(err);
-                alert('Error al conectar con el servidor.');
-            }
+        function toggleProfileDropdown(event) {
+            event.stopPropagation();
+            document.getElementById('profileDropdown').classList.toggle('hidden');
         }
 
-        // 2. GESTIONAR VERIFICACIÓN
-        async function handleVerify(event) {
-            event.preventDefault();
-            const codigo = document.getElementById('verifyCode').value;
+        document.addEventListener('click', () => {
+            document.getElementById('profileDropdown').classList.add('hidden');
+        });
 
-            try {
-                const response = await fetch(`${API_URL}/api/auth/verify`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: emailEnVerificacion, codigo })
-                });
-
-                const data = await response.json();
-                alert(data.mensaje);
-
-                if (response.ok) {
-                    switchTab('login');
-                }
-            } catch (err) {
-                console.error(err);
-                alert('Código inválido o error en la petición.');
-            }
-        }
-
-        // 3. GESTIONAR LOGIN Y REDIRECCIÓN INTERNA
-        async function handleLogin(event) {
-            event.preventDefault();
+        async function handleLogin(e) {
+            e.preventDefault();
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
 
@@ -600,34 +293,137 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
                 });
-
                 const data = await response.json();
 
                 if (response.ok) {
                     localStorage.setItem('token', data.token);
-                    
-                    // Extraer nombre del email para el saludo personalizado antes de crear el endpoint de perfil
-                    const nombreUsuario = email.split('@')[0];
-                    
-                    // Cargar la nueva sección de saludo y ocultar el resto
-                    document.getElementById('welcomeUserName').innerText = `${nombreUsuario} (${email})`;
-                    document.getElementById('authFormsContainer').classList.add('hidden');
-                    document.getElementById('dashboardSection').classList.remove('hidden');
+                    usuarioActual = data.usuario;
+                    cargarDashboard();
                 } else {
-                    // Indica con precisión si los datos ingresados son incorrectos
-                    alert(`Error de acceso: ${data.mensaje}`);
+                    alert(`Error: ${data.mensaje}`);
                 }
             } catch (err) {
-                console.error(err);
-                alert('Los datos ingresados son incorrectos o el servidor no responde.');
+                alert('Credenciales incorrectas o error de conexión.');
             }
         }
 
-        // Función para salir de la página de bienvenida
+        function cargarDashboard() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('dashboardScreen').classList.remove('hidden');
+            
+            document.getElementById('dashWelcomeName').innerText = usuarioActual.nombre;
+            document.getElementById('navUserName').innerText = `${usuarioActual.nombre} ${usuarioActual.apellido}`;
+            
+            if (usuarioActual.foto_url) {
+                document.getElementById('navAvatar').src = usuarioActual.foto_url;
+            } else {
+                document.getElementById('navAvatar').src = `https://ui-avatars.com/api/?name=${usuarioActual.nombre}+${usuarioActual.apellido}&background=ef4444&color=fff`;
+            }
+
+            // Precargar datos en el formulario del perfil
+            document.getElementById('profNombre').value = usuarioActual.nombre;
+            document.getElementById('profApellido').value = usuarioActual.apellido;
+            document.getElementById('profTelefono').value = usuarioActual.telefono;
+            document.getElementById('profFoto').value = usuarioActual.foto_url;
+        }
+
+        async function saveProfile() {
+            const token = localStorage.getItem('token');
+            const nombre = document.getElementById('profNombre').value;
+            const apellido = document.getElementById('profApellido').value;
+            const telefono = document.getElementById('profTelefono').value;
+            const foto_url = document.getElementById('profFoto').value;
+
+            try {
+                const res = await fetch(`${API_URL}/api/usuario/perfil`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ nombre, apellido, telefono, foto_url })
+                });
+                const data = await res.json();
+                alert(data.mensaje);
+                if (res.ok) {
+                    usuarioActual.nombre = nombre;
+                    usuarioActual.apellido = apellido;
+                    usuarioActual.telefono = telefono;
+                    usuarioActual.foto_url = foto_url;
+                    cargarDashboard();
+                }
+            } catch (e) {
+                alert('No se pudo guardar la información.');
+            }
+        }
+
+        async function handleForgot(e) {
+            e.preventDefault();
+            const email = document.getElementById('forgotEmail').value;
+            try {
+                const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+                alert(data.mensaje);
+                if (res.ok) {
+                    emailEnVerificacion = email;
+                    switchTab('login');
+                }
+            } catch (err) {
+                alert('Error al procesar la solicitud.');
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const nombre = document.getElementById('regNombre').value;
+            const apellido = document.getElementById('regApellido').value;
+            const email = document.getElementById('regEmail').value;
+            const fecha_nacimiento = document.getElementById('regFecha').value;
+            const password = document.getElementById('regPassword').value;
+
+            try {
+                const res = await fetch(`${API_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, apellido, email, fecha_nacimiento, password })
+                });
+                const data = await res.json();
+                alert(data.mensaje);
+
+                if (res.status === 201 || res.status === 202) {
+                    emailEnVerificacion = email;
+                    document.getElementById('registerForm').classList.add('hidden');
+                    document.getElementById('authTabs').classList.add('hidden');
+                    document.getElementById('oauthContainer').classList.add('hidden');
+                    document.getElementById('dividerText').classList.add('hidden');
+                    document.getElementById('verifyForm').classList.remove('hidden');
+                }
+            } catch (err) { alert('Error de red.'); }
+        }
+
+        async function handleVerify(e) {
+            e.preventDefault();
+            const codigo = document.getElementById('verifyCode').value;
+            try {
+                const res = await fetch(`${API_URL}/api/auth/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: emailEnVerificacion, codigo })
+                });
+                const data = await res.json();
+                alert(data.mensaje);
+                if (res.ok) switchTab('login');
+            } catch (err) { alert('Error.'); }
+        }
+
         function logout() {
             localStorage.removeItem('token');
-            document.getElementById('dashboardSection').classList.add('hidden');
-            document.getElementById('authFormsContainer').classList.remove('hidden');
+            document.getElementById('dashboardScreen').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
             switchTab('login');
         }
     </script>
