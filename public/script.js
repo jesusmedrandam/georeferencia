@@ -22,6 +22,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('registerForm').addEventListener('submit', handleRegister);
     document.getElementById('verifyForm').addEventListener('submit', handleVerify);
 
+    // Controlador para Reenviar Código
+    document.getElementById('btnResendCode').addEventListener('click', handleResendCode);
+
     // Guardar cambios y perfil
     document.getElementById('btnSaveProfile').addEventListener('click', (e) => {
         e.preventDefault();
@@ -30,229 +33,121 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('btnLogout').addEventListener('click', logout);
     
     document.getElementById('userMenuBtn').addEventListener('click', toggleProfileDropdown);
-    document.getElementById('profileDropdown').addEventListener('click', (e) => e.stopPropagation());
+    document.addEventListener('click', () => document.getElementById('profileDropdown').classList.add('hidden'));
 
-    document.getElementById('profFotoFile').addEventListener('change', function() {
-        const label = document.getElementById('fileNameLabel');
-        label.innerText = this.files[0] ? this.files[0].name : "Seleccionar foto de tu equipo";
-    });
-
-    document.querySelectorAll('.toggle-password').forEach(button => {
-        button.addEventListener('click', function() {
-            const targetId = this.getAttribute('data-target');
-            const input = document.getElementById(targetId);
-            const icon = this.querySelector('i');
-            input.type = input.type === 'password' ? 'text' : 'password';
-            icon.className = input.type === 'password' ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
-        });
+    // Actualizar nombre de archivo en label al seleccionar foto
+    document.getElementById('profFotoFile').addEventListener('change', (e) => {
+        const fileName = e.target.files[0]?.name || "Seleccionar foto de tu equipo";
+        document.getElementById('fileNameLabel').innerText = fileName;
     });
 });
 
-// NUEVO: Mantiene la sesión viva al presionar F5
+// === MENSAJES FLOTANTES ===
+function showNotification(message, type = 'success') {
+    const notif = document.getElementById('notification');
+    notif.className = `notification ${type}`;
+    notif.innerHTML = type === 'success' 
+        ? `<i class="fa-solid fa-circle-check"></i> <span>${message}</span>`
+        : `<i class="fa-solid fa-circle-exclamation"></i> <span>${message}</span>`;
+    
+    notif.classList.add('show');
+    setTimeout(() => notif.classList.remove('show'), 4000);
+}
+
+function clearNotification() {
+    document.getElementById('notification').classList.remove('show');
+}
+
+// === CONTROLADOR DE VISTAS (PESTAÑAS) ===
+function switchTab(tab) {
+    clearNotification();
+    
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('registerScreen').classList.add('hidden');
+    document.getElementById('forgotScreen').classList.add('hidden');
+    document.getElementById('resetPasswordScreen').classList.add('hidden');
+    document.getElementById('verifyScreen').classList.add('hidden');
+
+    document.getElementById('tabLoginBtn').classList.remove('active');
+    document.getElementById('tabRegisterBtn').classList.remove('active');
+
+    if (tab === 'login') {
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('tabLoginBtn').classList.add('active');
+    } else if (tab === 'register') {
+        document.getElementById('registerScreen').classList.remove('hidden');
+        document.getElementById('tabRegisterBtn').classList.add('active');
+    } else if (tab === 'forgot') {
+        document.getElementById('forgotScreen').classList.remove('hidden');
+    } else if (tab === 'reset') {
+        document.getElementById('resetPasswordScreen').classList.remove('hidden');
+    } else if (tab === 'verify') {
+        document.getElementById('verifyScreen').classList.remove('hidden');
+        document.getElementById('displayVerifyEmail').innerText = emailEnVerificacion || 'tu correo';
+    }
+}
+
+// === LÓGICA DE USUARIOS (FETCH API) ===
+
 async function verificarSesionActiva() {
     const token = localStorage.getItem('token');
-    if (!token) return; 
+    if (!token) return;
 
     try {
-        const response = await fetch(`${API_URL}/api/auth/me`, {
+        const res = await fetch(`${API_URL}/api/auth/me`, {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        const data = await response.json();
-
-        if (response.ok) {
+        const data = await res.json();
+        if (res.ok) {
             usuarioActual = data.usuario;
-            cargarDashboard();
+            showDashboard();
         } else {
             localStorage.removeItem('token');
         }
     } catch (err) {
-        console.error('Error al verificar sesión automática:', err);
-    }
-}
-
-function showNotification(message, type = 'error') {
-    const alertDiv = document.getElementById('globalAlert');
-    alertDiv.className = `custom-alert alert-${type}`;
-    alertDiv.innerHTML = `<i class="fa-solid ${type === 'error' ? 'fa-circle-xmark' : 'fa-circle-check'}"></i> ${message}`;
-    alertDiv.classList.remove('hidden');
-}
-
-function clearNotification() {
-    document.getElementById('globalAlert').classList.add('hidden');
-}
-
-function switchTab(type) {
-    clearNotification();
-    
-    document.getElementById('loginForm').classList.add('hidden');
-    document.getElementById('registerForm').classList.add('hidden');
-    document.getElementById('verifyForm').classList.add('hidden');
-    document.getElementById('forgotForm').classList.add('hidden');
-    document.getElementById('resetPasswordForm').classList.add('hidden');
-    
-    document.getElementById('authTabs').classList.remove('hidden');
-    document.getElementById('oauthContainer').classList.remove('hidden');
-    document.getElementById('dividerText').classList.remove('hidden');
-
-    const tabs = document.querySelectorAll('.tab-btn');
-    tabs.forEach(t => t.classList.remove('active'));
-
-    if (type === 'login') {
-        document.getElementById('tabLoginBtn').classList.add('active');
-        document.getElementById('loginForm').classList.remove('hidden');
-    } else if (type === 'register') {
-        document.getElementById('tabRegisterBtn').classList.add('active');
-        document.getElementById('registerForm').classList.remove('hidden');
-    } else if (type === 'forgot') {
-        document.getElementById('authTabs').classList.add('hidden');
-        document.getElementById('oauthContainer').classList.add('hidden');
-        document.getElementById('dividerText').classList.add('hidden');
-        document.getElementById('forgotForm').classList.remove('hidden');
-    } else if (type === 'reset') {
-        document.getElementById('authTabs').classList.add('hidden');
-        document.getElementById('oauthContainer').classList.add('hidden');
-        document.getElementById('dividerText').classList.add('hidden');
-        document.getElementById('resetPasswordForm').classList.remove('hidden');
-    } else if (type === 'verify') {
-        document.getElementById('authTabs').classList.add('hidden');
-        document.getElementById('oauthContainer').classList.add('hidden');
-        document.getElementById('dividerText').classList.add('hidden');
-        document.getElementById('verifyForm').classList.remove('hidden');
+        console.error("Error validando token persistente.");
     }
 }
 
 async function handleLogin(e) {
     e.preventDefault();
     clearNotification();
+
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
 
     try {
-        const response = await fetch(`${API_URL}/api/auth/login`, {
+        const res = await fetch(`${API_URL}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
         });
-        const data = await response.json();
 
-        if (response.ok) {
+        const data = await res.json();
+
+        if (res.ok) {
             localStorage.setItem('token', data.token);
             usuarioActual = data.usuario;
-            cargarDashboard();
+            showDashboard();
+            showNotification('¡Inicio de sesión exitoso!', 'success');
+        } else if (res.status === 401) {
+            // REDIRECCIÓN SI NO ESTÁ VERIFICADO
+            emailEnVerificacion = email;
+            switchTab('verify');
+            showNotification('Tu cuenta no está verificada. Ingresa tu código de verificación.', 'error');
         } else {
             showNotification(data.mensaje || 'Credenciales incorrectas.', 'error');
         }
     } catch (err) {
-        showNotification('El servidor no responde.', 'error');
-    }
-}
-
-function cargarDashboard() {
-    document.getElementById('loginScreen').classList.add('hidden');
-    document.getElementById('dashboardScreen').classList.remove('hidden');
-    
-    document.getElementById('dashWelcomeName').innerText = usuarioActual.nombre;
-    document.getElementById('navUserName').innerText = `${usuarioActual.nombre} ${usuarioActual.apellido}`;
-    
-    if (usuarioActual.foto_url) {
-        document.getElementById('navAvatar').src = usuarioActual.foto_url;
-    } else {
-        document.getElementById('navAvatar').src = `https://ui-avatars.com/api/?name=${usuarioActual.nombre}+${usuarioActual.apellido}&background=ef4444&color=fff`;
-    }
-
-    document.getElementById('profNombre').value = usuarioActual.nombre;
-    document.getElementById('profApellido').value = usuarioActual.apellido;
-    document.getElementById('profTelefono').value = usuarioActual.telefono || '';
-}
-
-// CORREGIDO: Sin Content-Type forzado para que Multer procese la imagen
-async function saveProfile() {
-    const token = localStorage.getItem('token');
-    const nombre = document.getElementById('profNombre').value;
-    const apellido = document.getElementById('profApellido').value;
-    const telefono = document.getElementById('profTelefono').value;
-    const fileInput = document.getElementById('profFotoFile');
-
-    const formData = new FormData();
-    formData.append('nombre', nombre);
-    formData.append('apellido', apellido);
-    formData.append('telefono', telefono);
-    if (fileInput.files[0]) {
-        formData.append('foto_perfil', fileInput.files[0]);
-    }
-
-    try {
-        const res = await fetch(`${API_URL}/api/usuario/perfil`, {
-            method: 'PUT',
-            headers: { 'Authorization': `Bearer ${token}` }, // Dejar que el navegador ponga el Boundary solo
-            body: formData
-        });
-        const data = await res.json();
-        if (res.ok) {
-            usuarioActual = data.usuario;
-            cargarDashboard();
-            document.getElementById('profileDropdown').classList.add('hidden');
-            alert('¡Perfil actualizado con éxito!');
-        } else {
-            alert(data.mensaje || 'Error al actualizar.');
-        }
-    } catch (e) {
-        alert('Error de conexión al guardar el perfil.');
-    }
-}
-
-async function handleForgot(e) {
-    e.preventDefault();
-    clearNotification();
-    const email = document.getElementById('forgotEmail').value;
-    try {
-        const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
-        });
-        const data = await res.json();
-        if (res.ok) {
-            emailEnVerificacion = email;
-            switchTab('reset');
-            showNotification(data.mensaje, 'success');
-        } else {
-            showNotification(data.mensaje || 'El correo no existe.', 'error');
-        }
-    } catch (err) { 
-        showNotification('Error al contactar con el servidor.', 'error'); 
-    }
-}
-
-async function handleResetReal(e) {
-    e.preventDefault();
-    clearNotification();
-    const codigo = document.getElementById('resetCode').value;
-    const nuevaPassword = document.getElementById('resetNewPassword').value;
-
-    try {
-        const res = await fetch(`${API_URL}/api/auth/reset-password`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: emailEnVerificacion, codigo, nuevaPassword })
-        });
-        const data = await res.json();
-
-        if (res.ok) {
-            switchTab('login');
-            showNotification(data.mensaje, 'success');
-        } else {
-            showNotification(data.mensaje || 'Código incorrecto.', 'error');
-        }
-    } catch (err) {
-        showNotification('Error al cambiar la contraseña.', 'error');
+        showNotification('Error de conexión con el servidor.', 'error');
     }
 }
 
 async function handleRegister(e) {
     e.preventDefault();
     clearNotification();
+
     const nombre = document.getElementById('regNombre').value;
     const apellido = document.getElementById('regApellido').value;
     const email = document.getElementById('regEmail').value;
@@ -265,6 +160,7 @@ async function handleRegister(e) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nombre, apellido, email, fecha_nacimiento, password })
         });
+
         const data = await res.json();
 
         if (res.ok) {
@@ -301,6 +197,136 @@ async function handleVerify(e) {
     }
 }
 
+async function handleResendCode() {
+    clearNotification();
+    if (!emailEnVerificacion) {
+        showNotification('No se detectó un correo para reenviar el código. Vuelve al login.', 'error');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: emailEnVerificacion })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            showNotification('¡Código nuevo enviado con éxito! Revisa tu correo.', 'success');
+        } else {
+            showNotification(data.mensaje || 'No se pudo reenviar el código.', 'error');
+        }
+    } catch (err) {
+        showNotification('Error de conexión al reenviar código.', 'error');
+    }
+}
+
+async function handleForgot(e) {
+    e.preventDefault();
+    clearNotification();
+    const email = document.getElementById('forgotEmail').value;
+
+    try {
+        const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            emailEnVerificacion = email; // Guardamos contexto por si necesita cambiar pass
+            switchTab('reset');
+            showNotification('Código enviado. Introduce el código y tu nueva contraseña.', 'success');
+        } else {
+            showNotification(data.mensaje || 'Error al procesar solicitud.', 'error');
+        }
+    } catch (err) {
+        showNotification('Error de conexión.', 'error');
+    }
+}
+
+async function handleResetReal(e) {
+    e.preventDefault();
+    clearNotification();
+    const codigo = document.getElementById('resetCode').value;
+    const nuevaPassword = document.getElementById('resetNewPassword').value;
+
+    try {
+        const res = await fetch(`${API_URL}/api/auth/reset-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: emailEnVerificacion, codigo, nuevaPassword })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            switchTab('login');
+            showNotification(data.mensaje, 'success');
+        } else {
+            showNotification(data.mensaje || 'No se pudo restablecer.', 'error');
+        }
+    } catch (err) {
+        showNotification('Error al conectar con servidor.', 'error');
+    }
+}
+
+// === FUNCIONES EXCLUSIVAS DEL DASHBOARD ===
+
+function showDashboard() {
+    if (!usuarioActual) return;
+    document.getElementById('authScreen').classList.add('hidden');
+    document.getElementById('dashboardScreen').classList.remove('hidden');
+
+    document.getElementById('dashWelcomeName').innerText = usuarioActual.nombre;
+    document.getElementById('dashName').innerText = `${usuarioActual.nombre} ${usuarioActual.apellido}`;
+    
+    document.getElementById('profNombre').value = usuarioActual.nombre;
+    document.getElementById('profApellido').value = usuarioActual.apellido;
+    document.getElementById('profTelefono').value = usuarioActual.telefono || '';
+
+    const avatar = document.getElementById('dashAvatar');
+    if (usuarioActual.foto_url) {
+        avatar.src = usuarioActual.foto_url;
+    } else {
+        avatar.src = "https://www.w3schools.com/howto/img_avatar.png";
+    }
+}
+
+async function saveProfile() {
+    clearNotification();
+    const token = localStorage.getItem('token');
+    
+    const formData = new FormData();
+    formData.append('nombre', document.getElementById('profNombre').value);
+    formData.append('apellido', document.getElementById('profApellido').value);
+    formData.append('telefono', document.getElementById('profTelefono').value);
+    
+    const fileInput = document.getElementById('profFotoFile');
+    if (fileInput.files[0]) {
+        formData.append('foto_perfil', fileInput.files[0]);
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/api/usuario/perfil`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            usuarioActual = data.usuario;
+            showDashboard();
+            showNotification(data.mensaje, 'success');
+            document.getElementById('profileDropdown').classList.add('hidden');
+        } else {
+            showNotification(data.mensaje || 'Error al guardar perfil.', 'error');
+        }
+    } catch (err) {
+        showNotification('Error al intentar guardar cambios.', 'error');
+    }
+}
+
 function toggleProfileDropdown(event) {
     event.stopPropagation();
     document.getElementById('profileDropdown').classList.toggle('hidden');
@@ -309,6 +335,6 @@ function toggleProfileDropdown(event) {
 function logout() {
     localStorage.removeItem('token');
     document.getElementById('dashboardScreen').classList.add('hidden');
-    document.getElementById('loginScreen').classList.remove('hidden');
     switchTab('login');
+    document.getElementById('authScreen').classList.remove('hidden');
 }
