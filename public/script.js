@@ -32,8 +32,15 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     document.getElementById('btnLogout').addEventListener('click', logout);
     
+    // CORREGIDO: Evita que el menú de actualizar datos desaparezca erráticamente
     document.getElementById('userMenuBtn').addEventListener('click', toggleProfileDropdown);
-    document.addEventListener('click', () => document.getElementById('profileDropdown').classList.add('hidden'));
+    document.getElementById('profileDropdown').addEventListener('click', (e) => e.stopPropagation());
+    document.addEventListener('click', (e) => {
+        const userPanel = document.querySelector('.user-panel');
+        if (!userPanel.contains(e.target)) {
+            document.getElementById('profileDropdown').classList.add('hidden');
+        }
+    });
 
     // Actualizar nombre de archivo en label al seleccionar foto
     document.getElementById('profFotoFile').addEventListener('change', (e) => {
@@ -58,7 +65,7 @@ function clearNotification() {
     document.getElementById('notification').classList.remove('show');
 }
 
-// === CONTROLADOR DE VISTAS (PESTAÑAS) ===
+// === CONTROLADOR DE VISTAS (PESTAÑAS ORIGINALES) ===
 function switchTab(tab) {
     clearNotification();
     
@@ -87,7 +94,7 @@ function switchTab(tab) {
     }
 }
 
-// === LÓGICA DE USUARIOS (FETCH API) ===
+// === LÓGICA DE USUARIOS ===
 
 async function verificarSesionActiva() {
     const token = localStorage.getItem('token');
@@ -106,7 +113,7 @@ async function verificarSesionActiva() {
             localStorage.removeItem('token');
         }
     } catch (err) {
-        console.error("Error validando token persistente.");
+        console.error("Error validando token.");
     }
 }
 
@@ -132,10 +139,10 @@ async function handleLogin(e) {
             showDashboard();
             showNotification('¡Inicio de sesión exitoso!', 'success');
         } else if (res.status === 401) {
-            // REDIRECCIÓN SI NO ESTÁ VERIFICADO
+            // CAPTURA DE CUENTA NO VERIFICADA
             emailEnVerificacion = email;
             switchTab('verify');
-            showNotification('Tu cuenta no está verificada. Ingresa tu código de verificación.', 'error');
+            showNotification('Tu cuenta no está verificada. Ingresa tu código aquí.', 'error');
         } else {
             showNotification(data.mensaje || 'Credenciales incorrectas.', 'error');
         }
@@ -200,7 +207,7 @@ async function handleVerify(e) {
 async function handleResendCode() {
     clearNotification();
     if (!emailEnVerificacion) {
-        showNotification('No se detectó un correo para reenviar el código. Vuelve al login.', 'error');
+        showNotification('No hay un correo registrado para reenvío. Vuelve al login.', 'error');
         return;
     }
 
@@ -213,12 +220,12 @@ async function handleResendCode() {
 
         const data = await res.json();
         if (res.ok) {
-            showNotification('¡Código nuevo enviado con éxito! Revisa tu correo.', 'success');
+            showNotification('¡Código nuevo enviado con éxito! Revisa tu bandeja.', 'success');
         } else {
             showNotification(data.mensaje || 'No se pudo reenviar el código.', 'error');
         }
     } catch (err) {
-        showNotification('Error de conexión al reenviar código.', 'error');
+        showNotification('Error de conexión al reenviar.', 'error');
     }
 }
 
@@ -235,7 +242,7 @@ async function handleForgot(e) {
         });
         const data = await res.json();
         if (res.ok) {
-            emailEnVerificacion = email; // Guardamos contexto por si necesita cambiar pass
+            emailEnVerificacion = email;
             switchTab('reset');
             showNotification('Código enviado. Introduce el código y tu nueva contraseña.', 'success');
         } else {
