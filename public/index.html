@@ -153,26 +153,20 @@
         </div>
 
         <div id="verifyScreen" class="hidden">
-            <h2 class="form-title" style="margin-bottom: 8px;">Verifica tu Cuenta</h2>
-            <p style="color: var(--text-muted); font-size: 14px; text-align: center; margin-bottom: 24px;">
-                Hemos enviado un código de 6 dígitos al correo: <br>
-                <strong id="displayVerifyEmail" style="color: var(--text-main);"></strong>
+            <h2 class="form-title">Verifica tu Cuenta</h2>
+            <p style="color: var(--text-muted); font-size: 14px; text-align: center; margin-bottom: 20px;">
+                Código enviado al correo: <strong id="displayVerifyEmail" style="color: var(--text-main);"></strong>
             </p>
-
             <form id="verifyForm">
                 <div class="form-group">
                     <label for="verifyCode">Código de Verificación</label>
-                    <input type="text" id="verifyCode" placeholder="000000" maxlength="6" required style="text-align: center; font-size: 20px; letter-spacing: 4px;">
+                    <input type="text" id="verifyCode" placeholder="000000" maxlength="6" required>
                 </div>
                 <button type="submit" class="submit-btn">Verificar Cuenta</button>
             </form>
-
-            <div style="text-align: center; margin-top: 20px; font-size: 14px;">
-                <p style="color: var(--text-muted); margin-bottom: 12px;">
-                    ¿No recibiste el código? 
-                    <span id="btnResendCode" style="color: var(--accent-primary); cursor: pointer; font-weight: 600; text-decoration: underline;">Reenviar código</span>
-                </p>
-                <span class="form-link go-back-login" style="text-decoration: underline;">Volver al Inicio de Sesión</span>
+            <div class="form-footer-links">
+                <span id="btnResendCode" class="form-link" style="color: var(--accent-primary); font-weight: 600;">Reenviar Código</span>
+                <span class="form-link go-back-login">Volver al Login</span>
             </div>
         </div>
     </div>
