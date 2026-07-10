@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('tabRegisterBtn').addEventListener('click', () => switchTab('register'));
     document.getElementById('goToForgotLink').addEventListener('click', () => switchTab('forgot'));
     
+    // Soporte para botones de volver al login
     document.querySelectorAll('.go-back-login').forEach(btn => {
         btn.addEventListener('click', () => switchTab('login'));
     });
@@ -32,15 +33,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     document.getElementById('btnLogout').addEventListener('click', logout);
     
-    // CORREGIDO: Evita que el menú de actualizar datos desaparezca erráticamente
     document.getElementById('userMenuBtn').addEventListener('click', toggleProfileDropdown);
-    document.getElementById('profileDropdown').addEventListener('click', (e) => e.stopPropagation());
-    document.addEventListener('click', (e) => {
-        const userPanel = document.querySelector('.user-panel');
-        if (!userPanel.contains(e.target)) {
-            document.getElementById('profileDropdown').classList.add('hidden');
-        }
-    });
+    document.addEventListener('click', () => document.getElementById('profileDropdown').classList.add('hidden'));
 
     // Actualizar nombre de archivo en label al seleccionar foto
     document.getElementById('profFotoFile').addEventListener('change', (e) => {
@@ -65,7 +59,7 @@ function clearNotification() {
     document.getElementById('notification').classList.remove('show');
 }
 
-// === CONTROLADOR DE VISTAS (PESTAÑAS ORIGINALES) ===
+// === CONTROLADOR DE VISTAS (PESTAÑAS) ===
 function switchTab(tab) {
     clearNotification();
     
@@ -94,7 +88,7 @@ function switchTab(tab) {
     }
 }
 
-// === LÓGICA DE USUARIOS ===
+// === LÓGICA DE USUARIOS (FETCH API) ===
 
 async function verificarSesionActiva() {
     const token = localStorage.getItem('token');
@@ -139,7 +133,7 @@ async function handleLogin(e) {
             showDashboard();
             showNotification('¡Inicio de sesión exitoso!', 'success');
         } else if (res.status === 401) {
-            // CAPTURA DE CUENTA NO VERIFICADA
+            // MANDA A VERIFICAR SI NO LO ESTÁ
             emailEnVerificacion = email;
             switchTab('verify');
             showNotification('Tu cuenta no está verificada. Ingresa tu código aquí.', 'error');
@@ -207,7 +201,7 @@ async function handleVerify(e) {
 async function handleResendCode() {
     clearNotification();
     if (!emailEnVerificacion) {
-        showNotification('No hay un correo registrado para reenvío. Vuelve al login.', 'error');
+        showNotification('No hay un correo registrado para reenvío. Regresa al login.', 'error');
         return;
     }
 
@@ -220,7 +214,7 @@ async function handleResendCode() {
 
         const data = await res.json();
         if (res.ok) {
-            showNotification('¡Código nuevo enviado con éxito! Revisa tu bandeja.', 'success');
+            showNotification('¡Código nuevo enviado! Revisa tu bandeja de entrada.', 'success');
         } else {
             showNotification(data.mensaje || 'No se pudo reenviar el código.', 'error');
         }
@@ -342,6 +336,6 @@ function toggleProfileDropdown(event) {
 function logout() {
     localStorage.removeItem('token');
     document.getElementById('dashboardScreen').classList.add('hidden');
+    document.getElementById('loginScreen').classList.remove('hidden');
     switchTab('login');
-    document.getElementById('authScreen').classList.remove('hidden');
 }
