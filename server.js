@@ -122,12 +122,12 @@ app.post('/api/auth/register', async (req, res) => {
             [nombre, apellido, email, fecha_nacimiento, hashedPassword, codigo]
         );
 
-        transporter.sendMail({
-            from: '"GeoAlerta" <jesusmedrandam@gmail.com>',
-            to: email,
-            subject: 'Código de Verificación - GeoAlerta',
-            text: `Tu código de verificación es: ${codigo}`
-        }).catch(err => console.error("Aviso: El correo no se pudo enviar, pero el usuario se guardó:", err.message));
+    transporter.sendMail({
+    from: `"GeoAlerta" <${process.env.SMTP_USER || 'jesusmedrandam@gmail.com'}>`,
+    to: email,
+    subject: 'Código de Verificación - GeoAlerta',
+    text: `Tu código de verificación es: ${codigo}`
+}).catch(err => console.error("Aviso: El correo no se pudo enviar, pero el usuario se guardó:", err.message));
 
         return res.status(201).json({ mensaje: 'Usuario creado. Introduce el código enviado a tu correo.' });
     } catch (err) {
