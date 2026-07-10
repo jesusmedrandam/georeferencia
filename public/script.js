@@ -3,7 +3,7 @@ let usuarioActual = null;
 let emailEnVerificacion = '';
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Controladores de Pestañas y Enlaces
+    // Controladores de Pestañas
     document.getElementById('tabLoginBtn').addEventListener('click', () => switchTab('login'));
     document.getElementById('tabRegisterBtn').addEventListener('click', () => switchTab('register'));
     document.getElementById('goToForgotLink').addEventListener('click', () => switchTab('forgot'));
@@ -12,44 +12,35 @@ document.addEventListener("DOMContentLoaded", () => {
         btn.addEventListener('click', () => switchTab('login'));
     });
 
-    // Controladores de Envío de Formularios
+    // Controladores de Formularios (Previene recargas erróneas)
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
     document.getElementById('forgotForm').addEventListener('submit', handleForgot);
     document.getElementById('resetPasswordForm').addEventListener('submit', handleResetReal);
     document.getElementById('registerForm').addEventListener('submit', handleRegister);
     document.getElementById('verifyForm').addEventListener('submit', handleVerify);
 
-    // Botones del Dashboard
-    document.getElementById('btnSaveProfile').addEventListener('click', saveProfile);
+    // Guardar cambios y perfil
+    document.getElementById('btnSaveProfile').addEventListener('click', (e) => {
+        e.preventDefault();
+        saveProfile();
+    });
     document.getElementById('btnLogout').addEventListener('click', logout);
     
-    // Menú desplegable del perfil
     document.getElementById('userMenuBtn').addEventListener('click', toggleProfileDropdown);
     document.getElementById('profileDropdown').addEventListener('click', (e) => e.stopPropagation());
 
-    // Listener para el input de archivo
     document.getElementById('profFotoFile').addEventListener('change', function() {
         const label = document.getElementById('fileNameLabel');
-        if (this.files && this.files[0]) {
-            label.innerText = this.files[0].name;
-        } else {
-            label.innerText = "Seleccionar foto de tu equipo";
-        }
+        label.innerText = this.files[0] ? this.files[0].name : "Seleccionar foto de tu equipo";
     });
 
-    // Mostrar/ocultar contraseñas
     document.querySelectorAll('.toggle-password').forEach(button => {
         button.addEventListener('click', function() {
             const targetId = this.getAttribute('data-target');
             const input = document.getElementById(targetId);
             const icon = this.querySelector('i');
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.className = 'fa-solid fa-eye-slash';
-            } else {
-                input.type = 'password';
-                icon.className = 'fa-solid fa-eye';
-            }
+            input.type = input.type === 'password' ? 'text' : 'password';
+            icon.className = input.type === 'password' ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
         });
     });
 });
@@ -57,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
 function showNotification(message, type = 'error') {
     const alertDiv = document.getElementById('globalAlert');
     alertDiv.className = `custom-alert alert-${type}`;
-    alertDiv.innerHTML = type === 'error' ? `<i class="fa-solid fa-circle-xmark"></i> ${message}` : `<i class="fa-solid fa-circle-check"></i> ${message}`;
+    alertDiv.innerHTML = `<i class="fa-solid ${type === 'error' ? 'fa-circle-xmark' : 'fa-circle-check'}"></i> ${message}`;
     alertDiv.classList.remove('hidden');
 }
 
@@ -65,31 +56,21 @@ function clearNotification() {
     document.getElementById('globalAlert').classList.add('hidden');
 }
 
-function clearAllInputs() {
-    const inputs = document.querySelectorAll('input:not([type="button"]):not([type="submit"])');
-    inputs.forEach(input => {
-        if(input.id !== 'profNombre' && input.id !== 'profApellido' && input.id !== 'profTelefono') {
-            input.value = '';
-        }
-    });
-    document.getElementById('fileNameLabel').innerText = "Seleccionar foto de tu equipo";
-}
-
 function switchTab(type) {
     clearNotification();
-    clearAllInputs();
-    
-    const tabs = document.querySelectorAll('.tab-btn');
-    tabs.forEach(t => t.classList.remove('active'));
     
     document.getElementById('loginForm').classList.add('hidden');
     document.getElementById('registerForm').classList.add('hidden');
     document.getElementById('verifyForm').classList.add('hidden');
     document.getElementById('forgotForm').classList.add('hidden');
     document.getElementById('resetPasswordForm').classList.add('hidden');
+    
     document.getElementById('authTabs').classList.remove('hidden');
     document.getElementById('oauthContainer').classList.remove('hidden');
     document.getElementById('dividerText').classList.remove('hidden');
+
+    const tabs = document.querySelectorAll('.tab-btn');
+    tabs.forEach(t => t.classList.remove('active'));
 
     if (type === 'login') {
         document.getElementById('tabLoginBtn').classList.add('active');
@@ -107,20 +88,13 @@ function switchTab(type) {
         document.getElementById('oauthContainer').classList.add('hidden');
         document.getElementById('dividerText').classList.add('hidden');
         document.getElementById('resetPasswordForm').classList.remove('hidden');
+    } else if (type === 'verify') {
+        document.getElementById('authTabs').classList.add('hidden');
+        document.getElementById('oauthContainer').classList.add('hidden');
+        document.getElementById('dividerText').classList.add('hidden');
+        document.getElementById('verifyForm').classList.remove('hidden');
     }
 }
-
-function toggleProfileDropdown(event) {
-    event.stopPropagation();
-    document.getElementById('profileDropdown').classList.toggle('hidden');
-}
-
-document.addEventListener('click', () => {
-    const dropdown = document.getElementById('profileDropdown');
-    if(dropdown) dropdown.classList.add('hidden');
-});
-
-// ACCIONES CON EL BACKEND
 
 async function handleLogin(e) {
     e.preventDefault();
@@ -139,13 +113,12 @@ async function handleLogin(e) {
         if (response.ok) {
             localStorage.setItem('token', data.token);
             usuarioActual = data.usuario;
-            clearAllInputs();
             cargarDashboard();
         } else {
-            showNotification(data.mensaje || 'Error en el inicio de sesión.', 'error');
+            showNotification(data.mensaje || 'Credenciales incorrectas.', 'error');
         }
     } catch (err) {
-        showNotification('El servidor no responde correctamente.', 'error');
+        showNotification('El servidor no responde.', 'error');
     }
 }
 
@@ -193,12 +166,12 @@ async function saveProfile() {
             usuarioActual = data.usuario;
             cargarDashboard();
             document.getElementById('profileDropdown').classList.add('hidden');
-            alert('Perfil guardado con éxito.');
+            alert('¡Perfil actualizado con éxito!');
         } else {
-            alert(data.mensaje || 'Error al guardar perfil.');
+            alert(data.mensaje || 'Error al actualizar.');
         }
     } catch (e) {
-        console.error("Error al guardar perfil:", e);
+        alert('Error de conexión al guardar el perfil.');
     }
 }
 
@@ -218,10 +191,10 @@ async function handleForgot(e) {
             switchTab('reset');
             showNotification(data.mensaje, 'success');
         } else {
-            showNotification(data.mensaje || 'Error al solicitar el código.', 'error');
+            showNotification(data.mensaje || 'El correo no existe.', 'error');
         }
     } catch (err) { 
-        showNotification('Error al procesar la solicitud en el servidor.', 'error'); 
+        showNotification('Error al contactar con el servidor.', 'error'); 
     }
 }
 
@@ -243,10 +216,10 @@ async function handleResetReal(e) {
             switchTab('login');
             showNotification(data.mensaje, 'success');
         } else {
-            showNotification(data.mensaje || 'Error al restablecer.', 'error');
+            showNotification(data.mensaje || 'Código incorrecto.', 'error');
         }
     } catch (err) {
-        showNotification('No se pudo actualizar la contraseña.', 'error');
+        showNotification('Error al cambiar la contraseña.', 'error');
     }
 }
 
@@ -269,17 +242,13 @@ async function handleRegister(e) {
 
         if (res.ok) {
             emailEnVerificacion = email;
-            document.getElementById('registerForm').classList.add('hidden');
-            document.getElementById('authTabs').classList.add('hidden');
-            document.getElementById('oauthContainer').classList.add('hidden');
-            document.getElementById('dividerText').classList.add('hidden');
-            document.getElementById('verifyForm').classList.remove('hidden');
+            switchTab('verify'); // Cambia directo a la vista del código
             showNotification(data.mensaje, 'success');
         } else {
-            showNotification(data.mensaje || 'Error al registrar usuario.', 'error');
+            showNotification(data.mensaje || 'Error al crear cuenta.', 'error');
         }
     } catch (err) { 
-        showNotification('Error al procesar la solicitud en el servidor.', 'error'); 
+        showNotification('Error de conexión en el servidor.', 'error'); 
     }
 }
 
@@ -298,11 +267,16 @@ async function handleVerify(e) {
             switchTab('login');
             showNotification(data.mensaje, 'success');
         } else {
-            showNotification(data.mensaje || 'Código incorrecto.', 'error');
+            showNotification(data.mensaje || 'Código inválido.', 'error');
         }
     } catch (err) { 
-        showNotification('Error de red al verificar.', 'error'); 
+        showNotification('Error al verificar.', 'error'); 
     }
+}
+
+function toggleProfileDropdown(event) {
+    event.stopPropagation();
+    document.getElementById('profileDropdown').classList.toggle('hidden');
 }
 
 function logout() {
