@@ -1,12 +1,11 @@
 const express = require('express');
 const { Pool } = require('pg');
-const bcrypt = require('bcryptjs'); // Usamos estrictamente bcryptjs
+const bcrypt = require('bcryptjs'); 
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
 const multer = require('multer'); 
 require('dotenv').config();
-
 
 const app = express();
 app.use(express.json());
@@ -16,7 +15,7 @@ app.use(express.static('public'));
 const storage = multer.memoryStorage();
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 3 * 1024 * 1024 } // Límite de 3MB para fotos
+    limits: { fileSize: 3 * 1024 * 1024 } // Límite de 3MB
 });
 
 const pool = new Pool({
@@ -40,7 +39,7 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// Inicializar tabla si no existe
+// Inicializar tabla asegurando que exista la columna foto_perfil
 const initDB = async () => {
     try {
         await pool.query(`
@@ -57,12 +56,54 @@ const initDB = async () => {
                 foto_perfil BYTEA
             );
         `);
+        // Asegurar estructura si la tabla ya fue creada manualmente antes
+        await pool.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS foto_perfil BYTEA;`);
         console.log("Base de datos sincronizada correctamente.");
     } catch (err) {
         console.error("Error al inicializar DB:", err);
     }
 };
 initDB();
+
+// Middleware de autenticación
+const verificarToken = (req, res, next) => {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) return res.status(403).json({ mensaje: 'Acceso no autorizado.' });
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.usuarioId = decoded.id;
+        next();
+    } catch (err) {
+        return res.status(401).json({ mensaje: 'Sesión expirada.' });
+    }
+};
+
+// **NUEVO endpoint**: Valida sesión activa y devuelve datos del usuario al recargar (F5)
+app.get('/api/auth/me', verificarToken, async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM usuarios WHERE id = $1', [req.usuarioId]);
+        if (result.rows.length === 0) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+
+        const usuario = result.rows[0];
+        let fotoBase64 = null;
+        if (usuario.foto_perfil) {
+            fotoBase64 = `data:image/jpeg;base64,${usuario.foto_perfil.toString('base64')}`;
+        }
+
+        return res.json({
+            usuario: {
+                nombre: usuario.nombre,
+                apellido: usuario.apellido,
+                email: usuario.email,
+                telefono: usuario.telefono,
+                foto_url: fotoBase64
+            }
+        });
+    } catch (err) {
+        return res.status(500).json({ mensaje: 'Error al recuperar la sesión.' });
+    }
+});
 
 // 1. REGISTRO
 app.post('/api/auth/register', async (req, res) => {
@@ -81,9 +122,8 @@ app.post('/api/auth/register', async (req, res) => {
             [nombre, apellido, email, fecha_nacimiento, hashedPassword, codigo]
         );
 
-        // Envío en segundo plano controlado. Si Brevo falla, el cliente igual recibe respuesta exitosa.
         transporter.sendMail({
-            from: '"GeoAlerta" <jesusmedrandam@gmail.com>', // Usamos tu correo verificado de Brevo
+            from: '"GeoAlerta" <jesusmedrandam@gmail.com>',
             to: email,
             subject: 'Código de Verificación - GeoAlerta',
             text: `Tu código de verificación es: ${codigo}`
@@ -191,20 +231,6 @@ app.post('/api/auth/reset-password', async (req, res) => {
         return res.status(500).json({ mensaje: 'Error al cambiar la contraseña.' });
     }
 });
-
-// Middleware de autenticación para el Dashboard
-const verificarToken = (req, res, next) => {
-    const token = req.headers['authorization']?.split(' ')[1];
-    if (!token) return res.status(403).json({ mensaje: 'Acceso no autorizado.' });
-
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        req.usuarioId = decoded.id;
-        next();
-    } catch (err) {
-        return res.status(401).json({ mensaje: 'Sesión expirada.' });
-    }
-};
 
 // 6. ACTUALIZAR PERFIL (FOTO EN BLOB/BYTEA)
 app.put('/api/usuario/perfil', verificarToken, upload.single('foto_perfil'), async (req, res) => {
