@@ -3,6 +3,9 @@ let usuarioActual = null;
 let emailEnVerificacion = '';
 
 document.addEventListener("DOMContentLoaded", () => {
+    // === VALIDACIÓN DE SESIÓN AUTOMÁTICA AL CARGAR ===
+    verificarSesionActiva();
+
     // Controladores de Pestañas
     document.getElementById('tabLoginBtn').addEventListener('click', () => switchTab('login'));
     document.getElementById('tabRegisterBtn').addEventListener('click', () => switchTab('register'));
@@ -12,7 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
         btn.addEventListener('click', () => switchTab('login'));
     });
 
-    // Controladores de Formularios (Previene recargas erróneas)
+    // Controladores de Formularios
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
     document.getElementById('forgotForm').addEventListener('submit', handleForgot);
     document.getElementById('resetPasswordForm').addEventListener('submit', handleResetReal);
@@ -44,6 +47,29 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 });
+
+// NUEVO: Mantiene la sesión viva al presionar F5
+async function verificarSesionActiva() {
+    const token = localStorage.getItem('token');
+    if (!token) return; 
+
+    try {
+        const response = await fetch(`${API_URL}/api/auth/me`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+            usuarioActual = data.usuario;
+            cargarDashboard();
+        } else {
+            localStorage.removeItem('token');
+        }
+    } catch (err) {
+        console.error('Error al verificar sesión automática:', err);
+    }
+}
 
 function showNotification(message, type = 'error') {
     const alertDiv = document.getElementById('globalAlert');
@@ -140,6 +166,7 @@ function cargarDashboard() {
     document.getElementById('profTelefono').value = usuarioActual.telefono || '';
 }
 
+// CORREGIDO: Sin Content-Type forzado para que Multer procese la imagen
 async function saveProfile() {
     const token = localStorage.getItem('token');
     const nombre = document.getElementById('profNombre').value;
@@ -158,7 +185,7 @@ async function saveProfile() {
     try {
         const res = await fetch(`${API_URL}/api/usuario/perfil`, {
             method: 'PUT',
-            headers: { 'Authorization': `Bearer ${token}` },
+            headers: { 'Authorization': `Bearer ${token}` }, // Dejar que el navegador ponga el Boundary solo
             body: formData
         });
         const data = await res.json();
@@ -242,7 +269,7 @@ async function handleRegister(e) {
 
         if (res.ok) {
             emailEnVerificacion = email;
-            switchTab('verify'); // Cambia directo a la vista del código
+            switchTab('verify'); 
             showNotification(data.mensaje, 'success');
         } else {
             showNotification(data.mensaje || 'Error al crear cuenta.', 'error');
