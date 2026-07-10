@@ -25,7 +25,10 @@ const pool = new Pool({
 
 const JWT_SECRET = process.env.JWT_SECRET || 'mi_clave_secreta_geoalerta';
 
-
+console.log("===== VARIABLES SMTP =====");
+console.log("BREVO_SMTP_USER:", process.env.BREVO_SMTP_USER);
+console.log("BREVO_API_KEY:", process.env.BREVO_API_KEY ? "Cargada" : "NO CARGADA");
+console.log("==========================");
 
 const transporter = nodemailer.createTransport({
     host: "smtp-relay.brevo.com",
