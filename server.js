@@ -25,14 +25,16 @@ const pool = new Pool({
 
 const JWT_SECRET = process.env.JWT_SECRET || 'mi_clave_secreta_geoalerta';
 
-// Configuración de Brevo (SMTP Relay)
+// === CONFIGURACIÓN DE BREVO CORREGIDA ===
 const transporter = nodemailer.createTransport({
     host: 'smtp-relay.brevo.com',
     port: 587,
     secure: false, 
     auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
+        // Forzamos tu usuario verificado de Brevo
+        user: 'jesusmedrandam@gmail.com', 
+        // Si tienes SMTP_PASS usa esa, sino caerá directamente a tu BREVO_API_KEY activa
+        pass: process.env.SMTP_PASS || process.env.BREVO_API_KEY
     },
     tls: {
         rejectUnauthorized: false
@@ -56,7 +58,6 @@ const initDB = async () => {
                 foto_perfil BYTEA
             );
         `);
-        // Asegurar estructura si la tabla ya fue creada manualmente antes
         await pool.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS foto_perfil BYTEA;`);
         console.log("Base de datos sincronizada correctamente.");
     } catch (err) {
@@ -79,7 +80,7 @@ const verificarToken = (req, res, next) => {
     }
 };
 
-// **NUEVO endpoint**: Valida sesión activa y devuelve datos del usuario al recargar (F5)
+// Validar sesión activa (F5)
 app.get('/api/auth/me', verificarToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM usuarios WHERE id = $1', [req.usuarioId]);
@@ -122,12 +123,13 @@ app.post('/api/auth/register', async (req, res) => {
             [nombre, apellido, email, fecha_nacimiento, hashedPassword, codigo]
         );
 
-    transporter.sendMail({
-    from: `"GeoAlerta" <${process.env.SMTP_USER || 'jesusmedrandam@gmail.com'}>`,
-    to: email,
-    subject: 'Código de Verificación - GeoAlerta',
-    text: `Tu código de verificación es: ${codigo}`
-}).catch(err => console.error("Aviso: El correo no se pudo enviar, pero el usuario se guardó:", err.message));
+        // CORREGIDO: Remitente estricto para evitar bloqueos de Brevo
+        transporter.sendMail({
+            from: '"GeoAlerta" <jesusmedrandam@gmail.com>',
+            to: email,
+            subject: 'Código de Verificación - GeoAlerta',
+            text: `Tu código de verificación es: ${codigo}`
+        }).catch(err => console.error("Aviso: El correo no se pudo enviar, pero el usuario se guardó:", err.message));
 
         return res.status(201).json({ mensaje: 'Usuario creado. Introduce el código enviado a tu correo.' });
     } catch (err) {
@@ -197,6 +199,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         const codigo = Math.floor(100000 + Math.random() * 900000).toString();
         await pool.query('UPDATE usuarios SET codigo_verificacion = $1 WHERE email = $2', [codigo, email]);
 
+        // CORREGIDO: Remitente estricto para evitar bloqueos de Brevo
         transporter.sendMail({
             from: '"GeoAlerta" <jesusmedrandam@gmail.com>',
             to: email,
