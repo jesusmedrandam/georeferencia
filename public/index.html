@@ -157,7 +157,7 @@
                         </div>
                     </div>
                     <button type="submit" class="submit-btn">Enviar Código</button>
-                    <span class="forgot-link go-back-login" style="text-align: center; margin-top: 15px;">Volver al Login</span>
+                    <span class="forgot-link go-back-login" style="text-align: center; margin-top: 15px; display: block;">Volver al Login</span>
                 </form>
 
                 <form id="resetPasswordForm" class="hidden">
@@ -195,6 +195,10 @@
                 <form id="verifyForm" class="hidden">
                     <div class="form-group"><label>Código de 6 dígitos enviado por mail</label><div class="input-wrapper"><i class="fa-solid fa-key input-icon"></i><input type="text" id="verifyCode" class="form-control" placeholder="123456" maxlength="6" required></div></div>
                     <button type="submit" class="submit-btn">Confirmar Cuenta</button>
+                    <div style="display: flex; justify-content: space-between; margin-top: 15px; font-size: 13px;">
+                        <span id="btnResendCode" class="forgot-link" style="margin: 0;">Reenviar código</span>
+                        <span class="forgot-link go-back-login" style="margin: 0;">Volver al Login</span>
+                    </div>
                 </form>
             </div>
         </div>
