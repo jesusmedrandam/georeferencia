@@ -1,10 +1,10 @@
 const express = require('express');
 const { Pool } = require('pg');
-const bcrypt = require('bcrypt');
-const jwt = require('jwt-simple');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
-const multer = require('multer'); // Para procesar la subida de fotos
+const multer = require('multer'); 
 require('dotenv').config();
 
 const app = express();
@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static('public'));
 
-// Configuración de almacenamiento para fotos de perfil (en memoria para Railway)
+// Configuración de almacenamiento para fotos en memoria (Ideal para Railway)
 const storage = multer.memoryStorage();
 const upload = multer({ 
     storage: storage,
@@ -30,13 +30,17 @@ const JWT_SECRET = process.env.JWT_SECRET || 'mi_clave_secreta_geoalerta';
 const transporter = nodemailer.createTransport({
     host: 'smtp-relay.brevo.com',
     port: 587,
+    secure: false, // TLS
     auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS
+    },
+    tls: {
+        rejectUnauthorized: false
     }
 });
 
-// Inicializar base de datos y añadir columnas si no existen
+// Inicializar base de datos
 const initDB = async () => {
     try {
         await pool.query(`
@@ -79,20 +83,22 @@ app.post('/api/auth/register', async (req, res) => {
             [nombre, apellido, email, fecha_nacimiento, hashedPassword, codigo]
         );
 
-        await transporter.sendMail({
+        // Envío de correo protegido para evitar bloqueos del servidor
+        transporter.sendMail({
             from: '"GeoAlerta" <no-reply@geoalerta.com>',
             to: email,
             subject: 'Código de Verificación - GeoAlerta',
             text: `Tu código de verificación es: ${codigo}`
-        });
+        }).catch(err => console.error("Error al enviar email de registro:", err));
 
-        res.status(201).json({ mensaje: 'Usuario registrado. Código enviado al correo.' });
+        return res.status(201).json({ mensaje: 'Usuario registrado. Código enviado al correo.' });
     } catch (err) {
-        res.status(500).json({ mensaje: 'Error en el servidor.' });
+        console.error(err);
+        return res.status(500).json({ mensaje: 'Error interno en el servidor al registrar.' });
     }
 });
 
-// 2. Verificar Código (Registro o Recuperación)
+// 2. Verificar Código
 app.post('/api/auth/verify', async (req, res) => {
     const { email, codigo } = req.body;
     try {
@@ -102,9 +108,9 @@ app.post('/api/auth/verify', async (req, res) => {
         }
 
         await pool.query('UPDATE usuarios SET verificado = true, codigo_verificacion = NULL WHERE email = $1', [email]);
-        res.json({ mensaje: 'Código verificado con éxito.' });
+        return res.json({ mensaje: 'Código verificado con éxito.' });
     } catch (err) {
-        res.status(500).json({ mensaje: 'Error al verificar.' });
+        return res.status(500).json({ mensaje: 'Error al verificar el código.' });
     }
 });
 
@@ -121,15 +127,14 @@ app.post('/api/auth/login', async (req, res) => {
         const validPassword = await bcrypt.compare(password, usuario.password);
         if (!validPassword) return res.status(400).json({ mensaje: 'Contraseña incorrecta.' });
 
-        const token = jwt.encode({ id: usuario.id }, JWT_SECRET);
+        const token = jwt.sign({ id: usuario.id }, JWT_SECRET, { expiresIn: '7d' });
         
-        // Convertir foto de binario a Base64 para enviarla al navegador de forma segura
         let fotoBase64 = null;
         if (usuario.foto_perfil) {
             fotoBase64 = `data:image/jpeg;base64,${usuario.foto_perfil.toString('base64')}`;
         }
 
-        res.json({
+        return res.json({
             token,
             usuario: {
                 nombre: usuario.nombre,
@@ -140,11 +145,11 @@ app.post('/api/auth/login', async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).json({ mensaje: 'Error en el login.' });
+        return res.status(500).json({ mensaje: 'Error en el login.' });
     }
 });
 
-// 4. Olvidó Contraseña - Paso 1: Generar y enviar código
+// 4. Olvidó Contraseña - Paso 1
 app.post('/api/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
     try {
@@ -154,26 +159,27 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         const codigo = Math.floor(100000 + Math.random() * 900000).toString();
         await pool.query('UPDATE usuarios SET codigo_verificacion = $1 WHERE email = $2', [codigo, email]);
 
-        await transporter.sendMail({
+        transporter.sendMail({
             from: '"GeoAlerta" <no-reply@geoalerta.com>',
             to: email,
             subject: 'Restablecer Contraseña - GeoAlerta',
             text: `Tu código temporal para cambiar tu contraseña es: ${codigo}`
-        });
+        }).catch(err => console.error("Error al enviar email de recuperación:", err));
 
-        res.json({ mensaje: 'Código de recuperación enviado al correo.' });
+        return res.json({ mensaje: 'Código de recuperación enviado al correo.' });
     } catch (err) {
-        res.status(500).json({ mensaje: 'Error al procesar la solicitud.' });
+        console.error(err);
+        return res.status(500).json({ mensaje: 'Error en el servidor al generar el código.' });
     }
 });
 
-// 5. Olvidó Contraseña - Paso 2: Actualizar contraseña real
+// 5. Olvidó Contraseña - Paso 2
 app.post('/api/auth/reset-password', async (req, res) => {
     const { email, codigo, nuevaPassword } = req.body;
     try {
         const result = await pool.query('SELECT * FROM usuarios WHERE email = $1 AND codigo_verificacion = $2', [email, codigo]);
         if (result.rows.length === 0) {
-            return res.status(400).json({ mensaje: 'El código es inválido o no corresponde a esta solicitud.' });
+            return res.status(400).json({ mensaje: 'El código es inválido o expiró.' });
         }
 
         const hashedNewPassword = await bcrypt.hash(nuevaPassword, 10);
@@ -182,45 +188,43 @@ app.post('/api/auth/reset-password', async (req, res) => {
             [hashedNewPassword, email]
         );
 
-        res.json({ mensaje: 'Contraseña actualizada correctamente. Ya puedes iniciar sesión.' });
+        return res.json({ mensaje: 'Contraseña actualizada correctamente.' });
     } catch (err) {
-        res.status(500).json({ mensaje: 'Error al cambiar la contraseña.' });
+        return res.status(500).json({ mensaje: 'Error al cambiar la contraseña.' });
     }
 });
 
-// Middleware de seguridad para proteger rutas del Dashboard
+// Middleware de seguridad
 const verificarToken = (req, res, next) => {
     const token = req.headers['authorization']?.split(' ')[1];
     if (!token) return res.status(403).json({ mensaje: 'Acceso denegado.' });
 
     try {
-        const decoded = jwt.decode(token, JWT_SECRET);
+        const decoded = jwt.verify(token, JWT_SECRET);
         req.usuarioId = decoded.id;
         next();
     } catch (err) {
-        res.status(401).json({ mensaje: 'Token inválido.' });
+        return res.status(401).json({ mensaje: 'Token inválido.' });
     }
 };
 
-// 6. Dashboard: Guardar Perfil con Archivo de Imagen Real
+// 6. Dashboard: Guardar Perfil con Archivo Binario (CORREGIDO PARA POSTGRES)
 app.put('/api/usuario/perfil', verificarToken, upload.single('foto_perfil'), async (req, res) => {
     const { nombre, apellido, telefono } = req.body;
     try {
         if (req.file) {
-            // Si el usuario subió un archivo desde su equipo, lo guardamos como datos binarios (BYTEA)
+            // Guardar el buffer explícito como un parámetro seguro en la DB
             await pool.query(
                 'UPDATE usuarios SET nombre = $1, apellido = $2, telefono = $3, foto_perfil = $4 WHERE id = $5',
                 [nombre, apellido, telefono, req.file.buffer, req.usuarioId]
             );
         } else {
-            // Si no cambió la foto, solo actualizamos los campos de texto
             await pool.query(
                 'UPDATE usuarios SET nombre = $1, apellido = $2, telefono = $3 WHERE id = $4',
                 [nombre, apellido, telefono, req.usuarioId]
             );
         }
 
-        // Volver a obtener el usuario actualizado para enviarlo de vuelta al front
         const updated = await pool.query('SELECT * FROM usuarios WHERE id = $1', [req.usuarioId]);
         const user = updated.rows[0];
         
@@ -229,12 +233,13 @@ app.put('/api/usuario/perfil', verificarToken, upload.single('foto_perfil'), asy
             fotoBase64 = `data:image/jpeg;base64,${user.foto_perfil.toString('base64')}`;
         }
 
-        res.json({
+        return res.json({
             mensaje: 'Perfil guardado con éxito.',
             usuario: { nombre: user.nombre, apellido: user.apellido, email: user.email, telefono: user.telefono, foto_url: fotoBase64 }
         });
     } catch (err) {
-        res.status(500).json({ mensaje: 'Error al actualizar el perfil.' });
+        console.error(err);
+        return res.status(500).json({ mensaje: 'Error al actualizar el perfil en la base de datos.' });
     }
 });
 
