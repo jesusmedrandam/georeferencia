@@ -3,7 +3,6 @@ const express = require('express');
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs'); 
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
 const cors = require('cors');
 const multer = require('multer'); 
 require('dotenv').config();
@@ -26,23 +25,7 @@ const pool = new Pool({
 
 const JWT_SECRET = process.env.JWT_SECRET || 'mi_clave_secreta_geoalerta';
 
-console.log("===== VARIABLES SMTP =====");
-console.log("BREVO_SMTP_USER:", process.env.BREVO_SMTP_USER);
-console.log("BREVO_API_KEY:", process.env.BREVO_API_KEY ? "Cargada" : "NO CARGADA");
-console.log("==========================");
-
-const transporter = nodemailer.createTransport({
-    host: "smtp-relay.brevo.com",
-    port: 465,
-    secure: true,
-    auth: {
-        user: process.env.BREVO_SMTP_USER,
-        pass: process.env.BREVO_API_KEY
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000
-});
+// === FUNCIÓN DE ENVÍO POR API DE BREVO (Sustituye por completo a SMTP) ===
 async function enviarCorreo(destinatario, asunto, mensaje) {
     try {
         const response = await axios.post(
@@ -50,7 +33,7 @@ async function enviarCorreo(destinatario, asunto, mensaje) {
             {
                 sender: {
                     name: "GeoAlerta",
-                    email: "jesusmedrandam@gmail.com"
+                    email: "jesusmedrandam@gmail.com" // Tu correo remitente verificado en Brevo
                 },
                 to: [
                     {
@@ -67,32 +50,18 @@ async function enviarCorreo(destinatario, asunto, mensaje) {
                 }
             }
         );
-
-        console.log("✅ Correo enviado:", response.data);
-
+        console.log("✅ API Brevo - Correo enviado correctamente:", response.data);
         return true;
-
     } catch (error) {
-
-        console.error("❌ Error Brevo:");
-
+        console.error("❌ API Brevo - Error al enviar el correo:");
         if (error.response) {
             console.error(error.response.data);
         } else {
             console.error(error.message);
         }
-
         return false;
     }
 }
-
-transporter.verify((error, success) => {
-    if (error) {
-        console.error("❌ Error SMTP:", error);
-    } else {
-        console.log("✅ SMTP conectado correctamente");
-    }
-});
 
 // Inicializar tabla asegurando que exista la columna foto_perfil
 const initDB = async () => {
@@ -159,7 +128,7 @@ app.get('/api/auth/me', verificarToken, async (req, res) => {
     }
 });
 
-// 1. REGISTRO
+// 1. REGISTRO (CON API BREVO)
 app.post('/api/auth/register', async (req, res) => {
     const { nombre, apellido, email, fecha_nacimiento, password } = req.body;
     try {
@@ -176,22 +145,12 @@ app.post('/api/auth/register', async (req, res) => {
             [nombre, apellido, email, fecha_nacimiento, hashedPassword, codigo]
         );
 
-        // CORREGIDO: Remitente estricto para evitar bloqueos de Brevo
-try {
-    const info = await transporter.sendMail({
-        from: '"GeoAlerta" <jesusmedrandam@gmail.com>',
-        to: email,
-        subject: 'Código de Verificación - GeoAlerta',
-        text: `Tu código de verificación es: ${codigo}`
-    });
-
-    console.log("✅ Correo enviado correctamente:", info.response);
-
-} catch (err) {
-    console.error("❌ Error enviando correo de verificación:");
-    console.error(err);
-}
-
+        // Llamada directa a la API de Brevo de manera asíncrona
+        enviarCorreo(
+            email,
+            'Código de Verificación - GeoAlerta',
+            `Tu código de verificación es: ${codigo}`
+        );
 
         return res.status(201).json({ mensaje: 'Usuario creado. Introduce el código enviado a tu correo.' });
     } catch (err) {
@@ -251,50 +210,29 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-// 4. SOLICITAR RECUPERACIÓN DE CONTRASEÑA
+// 4. SOLICITAR RECUPERACIÓN DE CONTRASEÑA (CON API BREVO)
 app.post('/api/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
-
     try {
-        const result = await pool.query(
-            'SELECT * FROM usuarios WHERE email = $1',
-            [email]
-        );
-
+        const result = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
         if (result.rows.length === 0) {
-            return res.status(400).json({
-                mensaje: 'Este correo electrónico no está registrado.'
-            });
+            return res.status(400).json({ mensaje: 'Este correo electrónico no está registrado.' });
         }
 
         const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+        await pool.query('UPDATE usuarios SET codigo_verificacion = $1 WHERE email = $2', [codigo, email]);
 
-        await pool.query(
-            'UPDATE usuarios SET codigo_verificacion = $1 WHERE email = $2',
-            [codigo, email]
+        // Llamada directa a la API de Brevo de manera asíncrona
+        enviarCorreo(
+            email,
+            'Restablecer Contraseña - GeoAlerta',
+            `Tu código para cambiar la contraseña es: ${codigo}`
         );
 
-        // Enviar correo
-        const info = await transporter.sendMail({
-            from: '"GeoAlerta" <jesusmedrandam@gmail.com>',
-            to: email,
-            subject: 'Restablecer Contraseña - GeoAlerta',
-            text: `Tu código para cambiar la contraseña es: ${codigo}`
-        });
-
-        console.log("✅ Correo enviado correctamente:", info.response);
-
-        return res.json({
-            mensaje: 'Código de recuperación enviado correctamente.'
-        });
-
+        return res.json({ mensaje: 'Código de recuperación generado.' });
     } catch (err) {
-        console.error("❌ Error al enviar correo de recuperación:");
-        console.error(err);
-
-        return res.status(500).json({
-            mensaje: 'Error en el servidor al procesar la solicitud.'
-        });
+        console.error("Error al enviar correo de recuperación:", err);
+        return res.status(500).json({ mensaje: 'Error en el servidor al procesar la solicitud.' });
     }
 });
 
