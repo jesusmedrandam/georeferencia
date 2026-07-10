@@ -45,7 +45,6 @@
         .tab-btn.active { color: var(--text-main); }
         .tab-btn.active::after { content: ''; position: absolute; bottom: -1px; left: 25%; width: 50%; height: 3px; background-color: var(--accent-primary); border-radius: 3px; }
 
-        /* Alertas Elegantes Internas */
         .custom-alert { padding: 12px 16px; border-radius: 12px; font-size: 14px; font-weight: 500; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; line-height: 1.4; }
         .custom-alert.alert-error { background-color: rgba(239, 68, 68, 0.15); border: 1px solid var(--accent-primary); color: #fca5a5; }
         .custom-alert.alert-success { background-color: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); color: #a7f3d0; }
@@ -86,7 +85,6 @@
         .dashboard-content { padding: 40px; display: flex; flex-direction: column; gap: 30px; max-width: 1200px; margin: 0 auto; width: 100%; }
         .alert-box { background: rgba(239, 68, 68, 0.1); border: 1px solid var(--accent-primary); border-radius: 16px; padding: 25px; display: flex; align-items: center; gap: 20px; }
 
-        /* Estilo para subir archivo nativo */
         .file-input-wrapper { display: block; background-color: var(--input-bg); border: 1px dashed var(--border-color); padding: 10px; border-radius: 12px; text-align: center; cursor: pointer; font-size: 13px; color: var(--text-muted); }
         .file-input-wrapper:hover { border-color: var(--accent-primary); color: white; }
 
@@ -95,7 +93,6 @@
 </head>
 <body>
 
-    <!-- CONTENEDOR 1: LOGIN, REGISTRO Y RECUPERACIÓN -->
     <div class="main-container" id="loginScreen">
         <div class="info-section">
             <div class="brand-wrapper">
@@ -111,25 +108,23 @@
                 
                 <div id="globalAlert" class="custom-alert hidden"></div>
 
-                <!-- Pestañas -->
                 <div class="auth-tabs" id="authTabs">
-                    <button class="tab-btn active" onclick="switchTab('login')">Iniciar Sesión</button>
-                    <button class="tab-btn" onclick="switchTab('register')">Crear Cuenta</button>
+                    <button class="tab-btn active" id="tabLoginBtn">Iniciar Sesión</button>
+                    <button class="tab-btn" id="tabRegisterBtn">Crear Cuenta</button>
                 </div>
 
                 <div class="oauth-buttons-container" id="oauthContainer">
-                    <button class="oauth-btn btn-google" onclick="showNotification('Google disponible próximamente.', 'error')">
+                    <button type="button" class="oauth-btn btn-google" onclick="alert('Google disponible próximamente.')">
                         <i class="fa-brands fa-google"></i> Continuar con Google
                     </button>
-                    <button class="oauth-btn btn-facebook" onclick="showNotification('Facebook disponible próximamente.', 'error')">
+                    <button type="button" class="oauth-btn btn-facebook" onclick="alert('Facebook disponible próximamente.')">
                         <i class="fa-brands fa-facebook-f"></i> Continuar con Facebook
                     </button>
                 </div>
 
                 <div class="divider" id="dividerText">o con tu correo</div>
 
-                <!-- FORMULARIO DE LOGIN -->
-                <form id="loginForm" onsubmit="handleLogin(event)">
+                <form id="loginForm">
                     <div class="form-group">
                         <label>Correo Electrónico</label>
                         <div class="input-wrapper">
@@ -142,17 +137,16 @@
                         <div class="input-wrapper">
                             <i class="fa-solid fa-lock input-icon"></i>
                             <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
-                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('loginPassword', this)">
+                            <button type="button" class="toggle-password" data-target="loginPassword">
                                 <i class="fa-solid fa-eye"></i>
                             </button>
                         </div>
                     </div>
-                    <span class="forgot-link" onclick="switchTab('forgot')">¿Olvidaste tu contraseña?</span>
+                    <span class="forgot-link" id="goToForgotLink">¿Olvidaste tu contraseña?</span>
                     <button type="submit" class="submit-btn">Ingresar</button>
                 </form>
 
-                <!-- PASO 1 OLVIDÓ CONTRASEÑA -->
-                <form id="forgotForm" class="hidden" onsubmit="handleForgot(event)">
+                <form id="forgotForm" class="hidden">
                     <h3 style="margin-bottom: 15px; font-size: 18px;">Recuperar Acceso</h3>
                     <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Ingresa tu correo para enviarte un código de reinicio temporal.</p>
                     <div class="form-group">
@@ -163,11 +157,10 @@
                         </div>
                     </div>
                     <button type="submit" class="submit-btn">Enviar Código</button>
-                    <span class="forgot-link" onclick="switchTab('login')" style="text-align: center; margin-top: 15px;">Volver al Login</span>
+                    <span class="forgot-link go-back-login" style="text-align: center; margin-top: 15px;">Volver al Login</span>
                 </form>
 
-                <!-- PASO 2 OLVIDÓ CONTRASEÑA - COMPLETADO REAL -->
-                <form id="resetPasswordForm" class="hidden" onsubmit="handleResetReal(event)">
+                <form id="resetPasswordForm" class="hidden">
                     <h3 style="margin-bottom: 15px; font-size: 18px;">Restablecer Contraseña</h3>
                     <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Revisa tu correo e introduce el código junto a tu nueva clave.</p>
                     <div class="form-group">
@@ -182,7 +175,7 @@
                         <div class="input-wrapper">
                             <i class="fa-solid fa-lock input-icon"></i>
                             <input type="password" id="resetNewPassword" class="form-control" placeholder="Mínimo 6 caracteres" required>
-                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('resetNewPassword', this)">
+                            <button type="button" class="toggle-password" data-target="resetNewPassword">
                                 <i class="fa-solid fa-eye"></i>
                             </button>
                         </div>
@@ -190,18 +183,16 @@
                     <button type="submit" class="submit-btn">Actualizar Contraseña</button>
                 </form>
 
-                <!-- REGISTRO -->
-                <form id="registerForm" class="hidden" onsubmit="handleRegister(event)">
+                <form id="registerForm" class="hidden">
                     <div class="form-group"><label>Nombre</label><div class="input-wrapper"><i class="fa-solid fa-user input-icon"></i><input type="text" id="regNombre" class="form-control" required></div></div>
                     <div class="form-group"><label>Apellido</label><div class="input-wrapper"><i class="fa-solid fa-user input-icon"></i><input type="text" id="regApellido" class="form-control" required></div></div>
                     <div class="form-group"><label>Correo Electrónico</label><div class="input-wrapper"><i class="fa-solid fa-envelope input-icon"></i><input type="email" id="regEmail" class="form-control" required></div></div>
                     <div class="form-group"><label>Fecha de Nacimiento</label><div class="input-wrapper"><i class="fa-solid fa-calendar input-icon"></i><input type="date" id="regFecha" class="form-control" required></div></div>
-                    <div class="form-group"><label>Contraseña</label><div class="input-wrapper"><i class="fa-solid fa-lock input-icon"></i><input type="password" id="regPassword" class="form-control" required><button type="button" class="toggle-password" onclick="togglePasswordVisibility('regPassword', this)"><i class="fa-solid fa-eye"></i></button></div></div>
+                    <div class="form-group"><label>Contraseña</label><div class="input-wrapper"><i class="fa-solid fa-lock input-icon"></i><input type="password" id="regPassword" class="form-control" required><button type="button" class="toggle-password" data-target="regPassword"><i class="fa-solid fa-eye"></i></button></div></div>
                     <button type="submit" class="submit-btn">Registrarse</button>
                 </form>
 
-                <!-- VERIFICACIÓN REGISTRO -->
-                <form id="verifyForm" class="hidden" onsubmit="handleVerify(event)">
+                <form id="verifyForm" class="hidden">
                     <div class="form-group"><label>Código de 6 dígitos enviado por mail</label><div class="input-wrapper"><i class="fa-solid fa-key input-icon"></i><input type="text" id="verifyCode" class="form-control" placeholder="123456" maxlength="6" required></div></div>
                     <button type="submit" class="submit-btn">Confirmar Cuenta</button>
                 </form>
@@ -209,7 +200,6 @@
         </div>
     </div>
 
-    <!-- CONTENEDOR 2: DASHBOARD -->
     <div class="dashboard-screen hidden" id="dashboardScreen">
         <div class="navbar">
             <div style="display: flex; align-items: center; gap: 10px;">
@@ -217,28 +207,27 @@
                 <span style="font-weight: 800; font-size: 20px;">GeoAlerta Panel</span>
             </div>
             
-            <div class="user-profile-menu" onclick="toggleProfileDropdown(event)">
-                <span id="navUserName" style="font-size: 14px; font-weight: 500;">Usuario</span>
+            <div class="user-profile-menu" id="userMenuBtn">
+                <span id="navUserName">Usuario</span>
                 <img id="navAvatar" src="" class="user-avatar" onerror="this.src='https://ui-avatars.com/api/?name=User&background=ef4444&color=fff';">
                 
-                <div class="dropdown-profile hidden" id="profileDropdown" onclick="event.stopPropagation()">
+                <div class="dropdown-profile hidden" id="profileDropdown">
                     <h4 style="margin-bottom: 15px; font-size: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Editar Mi Perfil</h4>
                     
                     <div class="form-group"><label>Nombre</label><input type="text" id="profNombre" class="form-control" style="padding: 8px 12px;"></div>
                     <div class="form-group"><label>Apellido</label><input type="text" id="profApellido" class="form-control" style="padding: 8px 12px;"></div>
                     <div class="form-group"><label>Teléfono</label><input type="text" id="profTelefono" class="form-control" style="padding: 8px 12px;" placeholder="+593..."></div>
                     
-                    <!-- Campo para Subir Imagen Real desde el Equipo -->
                     <div class="form-group">
                         <label>Foto de Perfil</label>
                         <label class="file-input-wrapper">
                             <i class="fa-solid fa-cloud-arrow-up"></i> <span id="fileNameLabel">Seleccionar foto de tu equipo</span>
-                            <input type="file" id="profFotoFile" accept="image/*" style="display: none;" onchange="updateFileNameLabel(this)">
+                            <input type="file" id="profFotoFile" accept="image/*" style="display: none;">
                         </label>
                     </div>
                     
-                    <button class="submit-btn" onclick="saveProfile()" style="padding: 8px; font-size: 14px; margin-bottom: 10px;">Guardar Cambios</button>
-                    <button class="submit-btn" onclick="logout()" style="padding: 8px; font-size: 14px; background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);">Cerrar Sesión</button>
+                    <button type="button" class="submit-btn" id="btnSaveProfile" style="padding: 8px; font-size: 14px; margin-bottom: 10px;">Guardar Cambios</button>
+                    <button type="button" class="submit-btn" id="btnLogout" style="padding: 8px; font-size: 14px; background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);">Cerrar Sesión</button>
                 </div>
             </div>
         </div>
@@ -255,282 +244,6 @@
         </div>
     </div>
 
-    <script>
-        const API_URL = window.location.origin;
-        let usuarioActual = null;
-        let emailEnVerificacion = '';
-
-        function showNotification(message, type = 'error') {
-            const alertDiv = document.getElementById('globalAlert');
-            alertDiv.className = `custom-alert alert-${type}`;
-            alertDiv.innerHTML = type === 'error' ? `<i class="fa-solid fa-circle-xmark"></i> ${message}` : `<i class="fa-solid fa-circle-check"></i> ${message}`;
-            alertDiv.classList.remove('hidden');
-        }
-
-        function clearNotification() {
-            document.getElementById('globalAlert').classList.add('hidden');
-        }
-
-        // CORRECCIÓN: Limpieza de inputs automática al alternar pantallas
-        function clearAllInputs() {
-            const inputs = document.querySelectorAll('input:not([type="button"]):not([type="submit"])');
-            inputs.forEach(input => {
-                if(input.id !== 'profNombre' && input.id !== 'profApellido' && input.id !== 'profTelefono') {
-                    input.value = '';
-                }
-            });
-            document.getElementById('fileNameLabel').innerText = "Seleccionar foto de tu equipo";
-            document.getElementById('profFotoFile').value = '';
-        }
-
-        function switchTab(type) {
-            clearNotification();
-            clearAllInputs(); // Limpia los datos anteriores de inmediato
-            
-            const tabs = document.querySelectorAll('.tab-btn');
-            tabs.forEach(t => t.classList.remove('active'));
-            document.getElementById('loginForm').classList.add('hidden');
-            document.getElementById('registerForm').classList.add('hidden');
-            document.getElementById('verifyForm').classList.add('hidden');
-            document.getElementById('forgotForm').classList.add('hidden');
-            document.getElementById('resetPasswordForm').classList.add('hidden');
-            document.getElementById('authTabs').classList.remove('hidden');
-            document.getElementById('oauthContainer').classList.remove('hidden');
-            document.getElementById('dividerText').classList.remove('hidden');
-
-            if (type === 'login') {
-                tabs[0].classList.add('active');
-                document.getElementById('loginForm').classList.remove('hidden');
-            } else if (type === 'register') {
-                tabs[1].classList.add('active');
-                document.getElementById('registerForm').classList.remove('hidden');
-            } else if (type === 'forgot') {
-                document.getElementById('authTabs').classList.add('hidden');
-                document.getElementById('oauthContainer').classList.add('hidden');
-                document.getElementById('dividerText').classList.add('hidden');
-                document.getElementById('forgotForm').classList.remove('hidden');
-            } else if (type === 'reset') {
-                document.getElementById('authTabs').classList.add('hidden');
-                document.getElementById('oauthContainer').classList.add('hidden');
-                document.getElementById('dividerText').classList.add('hidden');
-                document.getElementById('resetPasswordForm').classList.remove('hidden');
-            }
-        }
-
-        function updateFileNameLabel(input) {
-            const label = document.getElementById('fileNameLabel');
-            if (input.files && input.files[0]) {
-                label.innerText = input.files[0].name;
-            } else {
-                label.innerText = "Seleccionar foto de tu equipo";
-            }
-        }
-
-        function togglePasswordVisibility(id, btn) {
-            const input = document.getElementById(id);
-            const icon = btn.querySelector('i');
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.className = 'fa-solid fa-eye-slash';
-            } else {
-                input.type = 'password';
-                icon.className = 'fa-solid fa-eye';
-            }
-        }
-
-        function toggleProfileDropdown(event) {
-            event.stopPropagation();
-            document.getElementById('profileDropdown').classList.toggle('hidden');
-        }
-
-        document.addEventListener('click', () => {
-            const dropdown = document.getElementById('profileDropdown');
-            if(dropdown) dropdown.classList.add('hidden');
-        });
-
-        async function handleLogin(e) {
-            e.preventDefault();
-            clearNotification();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-
-            try {
-                const response = await fetch(`${API_URL}/api/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                const data = await response.json();
-
-                if (response.ok) {
-                    localStorage.setItem('token', data.token);
-                    usuarioActual = data.usuario;
-                    clearAllInputs();
-                    cargarDashboard();
-                } else {
-                    showNotification(data.mensaje, 'error');
-                }
-            } catch (err) {
-                showNotification('Los datos son incorrectos o el servidor no responde.', 'error');
-            }
-        }
-
-        function cargarDashboard() {
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('dashboardScreen').classList.remove('hidden');
-            
-            document.getElementById('dashWelcomeName').innerText = usuarioActual.nombre;
-            document.getElementById('navUserName').innerText = `${usuarioActual.nombre} ${usuarioActual.apellido}`;
-            
-            if (usuarioActual.foto_url) {
-                document.getElementById('navAvatar').src = usuarioActual.foto_url;
-            } else {
-                document.getElementById('navAvatar').src = `https://ui-avatars.com/api/?name=${usuarioActual.nombre}+${usuarioActual.apellido}&background=ef4444&color=fff`;
-            }
-
-            document.getElementById('profNombre').value = usuarioActual.nombre;
-            document.getElementById('profApellido').value = usuarioActual.apellido;
-            document.getElementById('profTelefono').value = usuarioActual.telefono || '';
-        }
-
-        // CORRECCIÓN: Guardar perfil enviando el archivo binario real de la imagen
-        async function saveProfile() {
-            const token = localStorage.getItem('token');
-            const nombre = document.getElementById('profNombre').value;
-            const apellido = document.getElementById('profApellido').value;
-            const telefono = document.getElementById('profTelefono').value;
-            const fileInput = document.getElementById('profFotoFile');
-
-            // Usamos FormData porque vamos a enviar un archivo real adjunto
-            const formData = new FormData();
-            formData.append('nombre', nombre);
-            formData.append('apellido', apellido);
-            formData.append('telefono', telefono);
-            if (fileInput.files[0]) {
-                formData.append('foto_perfil', fileInput.files[0]);
-            }
-
-            try {
-                const res = await fetch(`${API_URL}/api/usuario/perfil`, {
-                    method: 'PUT',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    body: formData
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    usuarioActual = data.usuario;
-                    cargarDashboard();
-                    document.getElementById('profileDropdown').classList.add('hidden');
-                }
-            } catch (e) {
-                console.error("Error al guardar perfil:", e);
-            }
-        }
-
-        async function handleForgot(e) {
-            e.preventDefault();
-            clearNotification();
-            const email = document.getElementById('forgotEmail').value;
-            try {
-                const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    emailEnVerificacion = email;
-                    switchTab('reset');
-                    showNotification(data.mensaje, 'success');
-                } else {
-                    showNotification(data.mensaje, 'error');
-                }
-            } catch (err) { showNotification('Error al procesar la solicitud.', 'error'); }
-        }
-
-        // CORRECCIÓN: Conexión con la base de datos real para actualizar la contraseña
-        async function handleResetReal(e) {
-            e.preventDefault();
-            clearNotification();
-            const codigo = document.getElementById('resetCode').value;
-            const nuevaPassword = document.getElementById('resetNewPassword').value;
-
-            try {
-                const res = await fetch(`${API_URL}/api/auth/reset-password`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: emailEnVerificacion, codigo, nuevaPassword })
-                });
-                const data = await res.json();
-
-                if (res.ok) {
-                    switchTab('login'); // Esto limpia automáticamente todas las cajas de texto
-                    showNotification(data.mensaje, 'success');
-                } else {
-                    showNotification(data.mensaje, 'error');
-                }
-            } catch (err) {
-                showNotification('No se pudo actualizar la contraseña.', 'error');
-            }
-        }
-
-        async function handleRegister(e) {
-            e.preventDefault();
-            clearNotification();
-            const nombre = document.getElementById('regNombre').value;
-            const apellido = document.getElementById('regApellido').value;
-            const email = document.getElementById('regEmail').value;
-            const fecha_nacimiento = document.getElementById('regFecha').value;
-            const password = document.getElementById('regPassword').value;
-
-            try {
-                const res = await fetch(`${API_URL}/api/auth/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nombre, apellido, email, fecha_nacimiento, password })
-                });
-                const data = await res.json();
-
-                if (res.status === 201 || res.status === 202) {
-                    emailEnVerificacion = email;
-                    document.getElementById('registerForm').classList.add('hidden');
-                    document.getElementById('authTabs').classList.add('hidden');
-                    document.getElementById('oauthContainer').classList.add('hidden');
-                    document.getElementById('dividerText').classList.add('hidden');
-                    document.getElementById('verifyForm').classList.remove('hidden');
-                    showNotification('Usuario registrado. Ingresa tu código.', 'success');
-                } else {
-                    showNotification(data.mensaje, 'error');
-                }
-            } catch (err) { showNotification('Error de red.', 'error'); }
-        }
-
-        async function handleVerify(e) {
-            e.preventDefault();
-            clearNotification();
-            const codigo = document.getElementById('verifyCode').value;
-            try {
-                const res = await fetch(`${API_URL}/api/auth/verify`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: emailEnVerificacion, codigo })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    switchTab('login');
-                    showNotification(data.mensaje, 'success');
-                } else {
-                    showNotification(data.mensaje, 'error');
-                }
-            } catch (err) { showNotification('Error.', 'error'); }
-        }
-
-        function logout() {
-            localStorage.removeItem('token');
-            document.getElementById('dashboardScreen').classList.add('hidden');
-            document.getElementById('loginScreen').classList.remove('hidden');
-            switchTab('login');
-        }
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
