@@ -25,16 +25,16 @@ const pool = new Pool({
 
 const JWT_SECRET = process.env.JWT_SECRET || 'mi_clave_secreta_geoalerta';
 
+
+
 // === CONFIGURACIÓN DE BREVO CORREGIDA ===
 const transporter = nodemailer.createTransport({
     host: 'smtp-relay.brevo.com',
     port: 587,
     secure: false, 
     auth: {
-        // Forzamos tu usuario verificado de Brevo
-        user: 'jesusmedrandam@gmail.com', 
-        // Si tienes SMTP_PASS usa esa, sino caerá directamente a tu BREVO_API_KEY activa
-        pass: process.env.SMTP_PASS || process.env.BREVO_API_KEY
+        user: 'jesusmedrandam@gmail.com', // Tu usuario verificado en Brevo
+        pass: process.env.BREVO_API_KEY   // Forzamos el uso de tu clave xsmtpsib-...
     },
     tls: {
         rejectUnauthorized: false
