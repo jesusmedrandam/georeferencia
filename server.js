@@ -1,3 +1,4 @@
+const axios = require('axios');
 const express = require('express');
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs'); 
@@ -42,6 +43,48 @@ const transporter = nodemailer.createTransport({
     greetingTimeout: 10000,
     socketTimeout: 10000
 });
+async function enviarCorreo(destinatario, asunto, mensaje) {
+    try {
+        const response = await axios.post(
+            "https://api.brevo.com/v3/smtp/email",
+            {
+                sender: {
+                    name: "GeoAlerta",
+                    email: "jesusmedrandam@gmail.com"
+                },
+                to: [
+                    {
+                        email: destinatario
+                    }
+                ],
+                subject: asunto,
+                textContent: mensaje
+            },
+            {
+                headers: {
+                    "api-key": process.env.BREVO_API_KEY,
+                    "Content-Type": "application/json"
+                }
+            }
+        );
+
+        console.log("✅ Correo enviado:", response.data);
+
+        return true;
+
+    } catch (error) {
+
+        console.error("❌ Error Brevo:");
+
+        if (error.response) {
+            console.error(error.response.data);
+        } else {
+            console.error(error.message);
+        }
+
+        return false;
+    }
+}
 
 transporter.verify((error, success) => {
     if (error) {
