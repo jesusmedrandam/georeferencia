@@ -51,7 +51,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-// NUEVO: Mantiene la sesión viva al presionar F5
 async function verificarSesionActiva() {
     const token = localStorage.getItem('token');
     if (!token) return; 
@@ -144,18 +143,24 @@ async function handleLogin(e) {
             usuarioActual = data.usuario;
             cargarDashboard();
         } else {
-            showNotification(data.mensaje || 'Credenciales incorrectas.', 'error');
+            // Si el backend avisa que falta verificar la cuenta, enviamos automáticamente a la pestaña de verificación
+            if (data.mensaje && data.mensaje.toLowerCase().includes('verifica')) {
+                emailEnVerificacion = email; 
+                switchTab('verify');
+                showNotification('Tu cuenta no está verificada. Por favor, introduce el código enviado a tu correo.', 'error');
+            } else {
+                showNotification(data.mensaje || 'Credenciales incorrectas.', 'error');
+            }
         }
     } catch (err) {
         showNotification('El servidor no responde.', 'error');
     }
 }
 
-// NUEVO: Envía una petición de reenvío utilizando la ruta de forgot-password
 async function handleResendCode() {
     clearNotification();
     if (!emailEnVerificacion) {
-        showNotification('No se detectó un correo en proceso de verificación.', 'error');
+        showNotification('No hay un correo electrónico configurado para verificación.', 'error');
         return;
     }
     try {
@@ -166,12 +171,12 @@ async function handleResendCode() {
         });
         const data = await res.json();
         if (res.ok) {
-            showNotification('¡Un nuevo código ha sido enviado a tu correo!', 'success');
+            showNotification('¡Un nuevo código ha sido enviado a tu correo electrónico!', 'success');
         } else {
             showNotification(data.mensaje || 'No se pudo reenviar el código.', 'error');
         }
     } catch (err) {
-        showNotification('Error al intentar reenviar el código.', 'error');
+        showNotification('Error al conectar con el servidor para reenviar.', 'error');
     }
 }
 
@@ -332,7 +337,7 @@ function toggleProfileDropdown(event) {
     document.getElementById('profileDropdown').classList.toggle('hidden');
 }
 
-// Modificado para ocultar dropdown de perfil y limpiar token
+// Cierra el menú de perfil si se hace click en el fondo del body
 document.addEventListener('click', () => {
     const dropdown = document.getElementById('profileDropdown');
     if (dropdown) dropdown.classList.add('hidden');
