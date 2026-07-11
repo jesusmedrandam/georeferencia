@@ -11,7 +11,10 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('goToForgotLink').addEventListener('click', () => switchTab('forgot'));
     
     document.querySelectorAll('.go-back-login').forEach(btn => {
-        btn.addEventListener('click', (e) => { e.preventDefault(); switchTab('login'); });
+        btn.addEventListener('click', (e) => { 
+            e.preventDefault(); 
+            switchTab('login'); 
+        });
     });
 
     // Envío de Formularios
@@ -21,7 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('registerForm').addEventListener('submit', handleRegister);
     document.getElementById('verifyForm').addEventListener('submit', handleVerify);
 
-    // Botones de Reenvío (Ambos usan ahora la misma función optimizada)
+    // Botones de Reenviar Código
     document.getElementById('btnResendCode').addEventListener('click', () => solicitarCodigoServidor(emailEnVerificacion, '¡Código de activación reenviado!'));
     document.getElementById('btnResendResetCode').addEventListener('click', () => solicitarCodigoServidor(emailEnVerificacion, '¡Código de restablecimiento reenviado!'));
 
@@ -48,10 +51,9 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==========================================
-// FUNCIONES REUTILIZABLES (MÓDULOS DE OPTIMIZACIÓN)
+// FUNCIONES REUTILIZABLES (MÓDULOS)
 // ==========================================
 
-// 1. Función genérica para enviar peticiones POST de autenticación (Login, Registro, Códigos, etc.)
 async function enviarPeticionAuth(endpoint, bodyData) {
     try {
         const response = await fetch(`${API_URL}/api/auth/${endpoint}`, {
@@ -60,24 +62,22 @@ async function enviarPeticionAuth(endpoint, bodyData) {
             body: JSON.stringify(bodyData)
         });
 
-        // OPTIMIZACIÓN CRÍTICA: Validamos si la respuesta es JSON o texto plano para evitar que se rompa el JS
         const contentType = response.headers.get("content-type");
         let data;
         if (contentType && contentType.includes("application/json")) {
             data = await response.json();
         } else {
             const textoPlano = await response.text();
-            data = { mensaje: textoPlano }; // Lo envolvemos en un objeto para mantener compatibilidad
+            data = { mensaje: textoPlano }; 
         }
 
-        return { ok: response.ok, data };
+        return { ok: response.ok, status: response.status, data };
     } catch (err) {
         console.error(`Error en petición ${endpoint}:`, err);
-        return { ok: false, data: { mensaje: 'Error de conexión con el servidor.' } };
+        return { ok: false, status: 500, data: { mensaje: 'Error de conexión con el servidor.' } };
     }
 }
 
-// 2. Función genérica para solicitar / reenviar códigos al correo del usuario (Usada por activación y olvido de clave)
 async function solicitarCodigoServidor(email, mensajeExito) {
     clearNotification();
     if (!email) {
@@ -95,7 +95,7 @@ async function solicitarCodigoServidor(email, mensajeExito) {
 }
 
 // ==========================================
-// CONTROLADORES DE EVENTOS (MANIPULADORES)
+// CONTROLADORES DE EVENTOS
 // ==========================================
 
 async function handleLogin(e) {
@@ -111,12 +111,13 @@ async function handleLogin(e) {
         usuarioActual = data.usuario;
         cargarDashboard();
     } else {
-        const msgError = data.mensaje ? data.mensaje.toLowerCase() : '';
-        // Si el servidor responde que no está verificado, saltamos inmediatamente de vista
-        if (msgError.includes('verificado')) {
+        const msgError = data.mensaje ? String(data.mensaje).toLowerCase() : '';
+        
+        // CORRECCIÓN DE DETECCIÓN: Si el mensaje contiene "verificado" o "verifica", forzamos el cambio de pantalla
+        if (msgError.includes('verific')) {
             emailEnVerificacion = email; 
             switchTab('verify');
-            showNotification('Tu cuenta no está verificada. Introduce el código que enviamos a tu correo.', 'error');
+            showNotification('Tu cuenta no está verificada. Por favor, introduce el código de activación.', 'error');
         } else {
             showNotification(data.mensaje || 'Credenciales incorrectas.', 'error');
         }
@@ -126,11 +127,10 @@ async function handleLogin(e) {
 async function handleForgot(e) {
     e.preventDefault();
     const email = document.getElementById('forgotEmail').value;
-    // Llama a la función reutilizable
     const enviado = await solicitarCodigoServidor(email, '¡Código de restablecimiento enviado!');
     if (enviado) {
         emailEnVerificacion = email;
-        switchTab('reset');
+        switchTab('reset'); // Esto ahora llamará correctamente a 'resetPasswordForm'
     }
 }
 
@@ -183,30 +183,41 @@ async function handleVerify(e) {
 }
 
 // ==========================================
-// VISTAS, NOTIFICACIONES Y SESIONES
+// INTERFAZ DE USUARIO Y CONTROL DE PANTALLAS
 // ==========================================
 
 function switchTab(type) {
     clearNotification();
-    const vistas = ['loginForm', 'registerForm', 'verifyForm', 'forgotForm', 'resetPasswordForm'];
-    vistas.forEach(id => document.getElementById(id).classList.add('hidden'));
-
-    const elementosComunes = ['authTabs', 'oauthContainer', 'dividerText'];
+    
+    // Ocultamos todos los formularios usando sus IDs exactos del HTML
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('registerForm').classList.add('hidden');
+    document.getElementById('verifyForm').classList.add('hidden');
+    document.getElementById('forgotForm').classList.add('hidden');
+    document.getElementById('resetPasswordForm').classList.add('hidden');
+    
+    // Control de elementos comunes de la pestaña de Auth
     const ocultarComunes = ['forgot', 'reset', 'verify'].includes(type);
-    elementosComunes.forEach(id => {
-        document.getElementById(id).classList.toggle('hidden', ocultarComunes);
-    });
+    document.getElementById('authTabs').classList.toggle('hidden', ocultarComunes);
+    document.getElementById('oauthContainer').classList.toggle('hidden', ocultarComunes);
+    document.getElementById('dividerText').classList.toggle('hidden', ocultarComunes);
 
+    // Desactivar estilos activos de las pestañas superiores
     document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
 
+    // SOLUCIÓN AL CUADRO NEGRO: Mapeo explícito y correcto de cada vista a su ID real en el HTML
     if (type === 'login') {
         document.getElementById('tabLoginBtn').classList.add('active');
         document.getElementById('loginForm').classList.remove('hidden');
     } else if (type === 'register') {
         document.getElementById('tabRegisterBtn').classList.add('active');
         document.getElementById('registerForm').classList.remove('hidden');
-    } else {
-        document.getElementById(`${type}Form` || 'verifyForm').classList.remove('hidden');
+    } else if (type === 'forgot') {
+        document.getElementById('forgotForm').classList.remove('hidden');
+    } else if (type === 'reset') {
+        document.getElementById('resetPasswordForm').classList.remove('hidden');
+    } else if (type === 'verify') {
+        document.getElementById('verifyForm').classList.remove('hidden');
     }
 }
 
