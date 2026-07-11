@@ -148,7 +148,6 @@
 
                 <div class="divider" id="dividerText">o con tu correo</div>
 
-                <!-- FORMULARIO DE LOGIN -->
                 <form id="loginForm">
                     <div class="form-group">
                         <label>Correo Electrónico</label>
@@ -171,7 +170,6 @@
                     <button type="submit" class="submit-btn">Ingresar</button>
                 </form>
 
-                <!-- FORMULARIO OLVIDÓ CONTRASEÑA -->
                 <form id="forgotForm" class="hidden">
                     <h3 style="margin-bottom: 15px; font-size: 18px;">Recuperar Acceso</h3>
                     <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Ingresa tu correo para enviarte un código de reinicio temporal.</p>
@@ -183,10 +181,9 @@
                         </div>
                     </div>
                     <button type="submit" class="submit-btn">Enviar Código</button>
-                    <span class="forgot-link go-back-login" style="text-align: center; margin-top: 15px; display: block;">Volver al Login</span>
+                    <span class="forgot-link go-back-login" style="text-align: center; margin-top: 20px; display: block;">Volver al Login</span>
                 </form>
 
-                <!-- FORMULARIO RESTABLECER CONTRASEÑA -->
                 <form id="resetPasswordForm" class="hidden">
                     <h3 style="margin-bottom: 15px; font-size: 18px;">Restablecer Contraseña</h3>
                     <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Revisa tu correo e introduce el código junto a tu nueva clave.</p>
@@ -208,9 +205,12 @@
                         </div>
                     </div>
                     <button type="submit" class="submit-btn">Actualizar Contraseña</button>
+                    <div style="display: flex; justify-content: space-between; margin-top: 20px; font-size: 13px;">
+                        <span id="btnResendResetCode" class="forgot-link" style="margin: 0; cursor: pointer;">Reenviar código</span>
+                        <span class="forgot-link go-back-login" style="margin: 0; cursor: pointer;">Volver al Login</span>
+                    </div>
                 </form>
 
-                <!-- FORMULARIO DE REGISTRO -->
                 <form id="registerForm" class="hidden">
                     <div class="form-group"><label>Nombre</label><div class="input-wrapper"><i class="fa-solid fa-user input-icon"></i><input type="text" id="regNombre" class="form-control" required></div></div>
                     <div class="form-group"><label>Apellido</label><div class="input-wrapper"><i class="fa-solid fa-user input-icon"></i><input type="text" id="regApellido" class="form-control" required></div></div>
@@ -220,7 +220,6 @@
                     <button type="submit" class="submit-btn">Registrarse</button>
                 </form>
 
-                <!-- FORMULARIO DE VERIFICACIÓN DE CUENTA -->
                 <form id="verifyForm" class="hidden">
                     <div class="form-group">
                         <label>Código de 6 dígitos enviado por mail</label>
@@ -239,7 +238,6 @@
         </div>
     </div>
 
-    <!-- PANTALLA DEL DASHBOARD -->
     <div class="dashboard-screen hidden" id="dashboardScreen">
         <div class="navbar">
             <div style="display: flex; align-items: center; gap: 10px;">
