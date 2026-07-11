@@ -22,9 +22,11 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; overflow-x: hidden; }
+        
+        /* CONTENEDOR PRINCIPAL DEL LOGIN */
         .main-container { display: flex; width: 100%; min-height: 100vh; }
 
-        /* COLUMNA IZQUIERDA */
+        /* COLUMNA IZQUIERDA (INFO) */
         .info-section {
             flex: 1.2;
             background: linear-gradient(135deg, rgba(11, 15, 25, 0.9), rgba(23, 16, 16, 0.95)), 
@@ -37,18 +39,21 @@
         .hero-title { font-size: 56px; font-weight: 800; line-height: 1.1; margin-bottom: 24px; letter-spacing: -2px; }
         .hero-subtitle { font-size: 18px; color: var(--text-muted); line-height: 1.6; max-width: 550px; margin-bottom: 40px; }
 
-        /* COLUMNA DERECHA */
+        /* COLUMNA DERECHA (FORMULARIOS) */
         .auth-section { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px; background-color: #030712; }
         .auth-card { width: 100%; max-width: 420px; background-color: var(--card-bg); border-radius: 24px; padding: 40px; border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); position: relative; }
+        
         .auth-tabs { display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 30px; }
         .tab-btn { flex: 1; background: none; border: none; color: var(--text-muted); font-size: 16px; font-weight: 600; padding: 12px 0; cursor: pointer; text-align: center; position: relative; }
         .tab-btn.active { color: var(--text-main); }
         .tab-btn.active::after { content: ''; position: absolute; bottom: -1px; left: 25%; width: 50%; height: 3px; background-color: var(--accent-primary); border-radius: 3px; }
 
+        /* ALERTAS */
         .custom-alert { padding: 12px 16px; border-radius: 12px; font-size: 14px; font-weight: 500; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; line-height: 1.4; }
         .custom-alert.alert-error { background-color: rgba(239, 68, 68, 0.15); border: 1px solid var(--accent-primary); color: #fca5a5; }
         .custom-alert.alert-success { background-color: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); color: #a7f3d0; }
 
+        /* BOTONES OAUTH */
         .oauth-buttons-container { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
         .oauth-btn { width: 100%; border: none; padding: 12px 16px; border-radius: 99px; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 12px; cursor: pointer; }
         .btn-google { background-color: var(--text-main); color: #000; }
@@ -59,6 +64,7 @@
         .divider:not(:empty)::before { margin-right: .5em; }
         .divider:not(:empty)::after { margin-left: .5em; }
 
+        /* ENTRADAS DE FORMULARIO */
         .form-group { margin-bottom: 20px; position: relative; }
         .form-group label { display: block; font-size: 13px; font-weight: 500; color: var(--text-muted); margin-bottom: 8px; }
         .input-wrapper { position: relative; display: flex; align-items: center; }
@@ -89,6 +95,24 @@
         .file-input-wrapper:hover { border-color: var(--accent-primary); color: white; }
 
         .hidden { display: none !important; }
+
+        /* ==========================================
+           MEDIA QUERIES (DISEÑO RESPONSIVO MÓVIL)
+           ========================================== */
+        @media (max-width: 900px) {
+            .main-container { flex-direction: column; }
+            .info-section { flex: none; padding: 40px 20px; text-align: center; border-right: none; border-bottom: 1px solid var(--border-color); }
+            .brand-wrapper { justify-content: center; margin-bottom: 20px; }
+            .hero-title { font-size: 32px; margin-bottom: 15px; }
+            .hero-subtitle { font-size: 15px; margin: 0 auto; }
+            .auth-section { padding: 30px 15px; }
+            .auth-card { padding: 30px 20px; }
+            
+            .navbar { padding: 15px 20px; }
+            .dashboard-content { padding: 20px 15px; }
+            .alert-box { flex-direction: column; text-align: center; padding: 20px; gap: 15px; }
+            .dropdown-profile { right: -15px; width: calc(100vw - 30px); max-width: 320px; }
+        }
     </style>
 </head>
 <body>
@@ -124,6 +148,7 @@
 
                 <div class="divider" id="dividerText">o con tu correo</div>
 
+                <!-- FORMULARIO DE LOGIN -->
                 <form id="loginForm">
                     <div class="form-group">
                         <label>Correo Electrónico</label>
@@ -146,6 +171,7 @@
                     <button type="submit" class="submit-btn">Ingresar</button>
                 </form>
 
+                <!-- FORMULARIO OLVIDÓ CONTRASEÑA -->
                 <form id="forgotForm" class="hidden">
                     <h3 style="margin-bottom: 15px; font-size: 18px;">Recuperar Acceso</h3>
                     <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Ingresa tu correo para enviarte un código de reinicio temporal.</p>
@@ -160,6 +186,7 @@
                     <span class="forgot-link go-back-login" style="text-align: center; margin-top: 15px; display: block;">Volver al Login</span>
                 </form>
 
+                <!-- FORMULARIO RESTABLECER CONTRASEÑA -->
                 <form id="resetPasswordForm" class="hidden">
                     <h3 style="margin-bottom: 15px; font-size: 18px;">Restablecer Contraseña</h3>
                     <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Revisa tu correo e introduce el código junto a tu nueva clave.</p>
@@ -183,6 +210,7 @@
                     <button type="submit" class="submit-btn">Actualizar Contraseña</button>
                 </form>
 
+                <!-- FORMULARIO DE REGISTRO -->
                 <form id="registerForm" class="hidden">
                     <div class="form-group"><label>Nombre</label><div class="input-wrapper"><i class="fa-solid fa-user input-icon"></i><input type="text" id="regNombre" class="form-control" required></div></div>
                     <div class="form-group"><label>Apellido</label><div class="input-wrapper"><i class="fa-solid fa-user input-icon"></i><input type="text" id="regApellido" class="form-control" required></div></div>
@@ -192,18 +220,26 @@
                     <button type="submit" class="submit-btn">Registrarse</button>
                 </form>
 
+                <!-- FORMULARIO DE VERIFICACIÓN DE CUENTA -->
                 <form id="verifyForm" class="hidden">
-                    <div class="form-group"><label>Código de 6 dígitos enviado por mail</label><div class="input-wrapper"><i class="fa-solid fa-key input-icon"></i><input type="text" id="verifyCode" class="form-control" placeholder="123456" maxlength="6" required></div></div>
+                    <div class="form-group">
+                        <label>Código de 6 dígitos enviado por mail</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-key input-icon"></i>
+                            <input type="text" id="verifyCode" class="form-control" placeholder="123456" maxlength="6" style="text-align: center; font-weight: bold; letter-spacing: 2px;" required>
+                        </div>
+                    </div>
                     <button type="submit" class="submit-btn">Confirmar Cuenta</button>
-                    <div style="display: flex; justify-content: space-between; margin-top: 15px; font-size: 13px;">
-                        <span id="btnResendCode" class="forgot-link" style="margin: 0;">Reenviar código</span>
-                        <span class="forgot-link go-back-login" style="margin: 0;">Volver al Login</span>
+                    <div style="display: flex; justify-content: space-between; margin-top: 20px; font-size: 13px;">
+                        <span id="btnResendCode" class="forgot-link" style="margin: 0; cursor: pointer;">Reenviar código</span>
+                        <span class="forgot-link go-back-login" style="margin: 0; cursor: pointer;">Volver al Login</span>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
+    <!-- PANTALLA DEL DASHBOARD -->
     <div class="dashboard-screen hidden" id="dashboardScreen">
         <div class="navbar">
             <div style="display: flex; align-items: center; gap: 10px;">
