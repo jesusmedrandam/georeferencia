@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('tabRegisterBtn').addEventListener('click', () => switchTab('register'));
     document.getElementById('goToForgotLink').addEventListener('click', () => switchTab('forgot'));
     
-    // Asignar el comportamiento a TODOS los botones de "Volver al Login"
+    // Asignar el comportamiento a TODOS los enlaces/botones de "Volver al Login"
     document.querySelectorAll('.go-back-login').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -26,7 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('registerForm').addEventListener('submit', handleRegister);
     document.getElementById('verifyForm').addEventListener('submit', handleVerify);
 
-    // Controladores para Reenviar Códigos (Tanto para Verificación como para Reset)
+    // Controladores para Reenviar Códigos (Activación de cuenta y Restablecimiento)
     document.getElementById('btnResendCode').addEventListener('click', handleResendCode);
     document.getElementById('btnResendResetCode').addEventListener('click', handleResendResetCode);
 
@@ -148,11 +148,12 @@ async function handleLogin(e) {
             usuarioActual = data.usuario;
             cargarDashboard();
         } else {
-            // CORRECCIÓN: Si el mensaje contiene "verificado", asumimos que existe pero requiere activarse
+            // DETECCIÓN DE CUENTA EXISTENTE PERO NO VERIFICADA:
+            // Tu backend responde "Usuario no encontrado o no verificado." ante cuentas inactivas.
             if (data.mensaje && data.mensaje.toLowerCase().includes('verificado')) {
-                emailEnVerificacion = email; 
+                emailEnVerificacion = email; // Capturamos el correo usado para los reenvíos
                 switchTab('verify');
-                showNotification('Tu cuenta existe pero no está verificada. Por favor, introduce el código de activación.', 'error');
+                showNotification('Tu cuenta existe pero aún no está verificada. Por favor introduce tu código de activación.', 'error');
             } else {
                 showNotification(data.mensaje || 'Credenciales incorrectas.', 'error');
             }
@@ -162,32 +163,31 @@ async function handleLogin(e) {
     }
 }
 
-// Reenvío de código para activar cuenta por primera vez
+// Reenviar código de activación de cuenta (Usando la pasarela del forgot-password)
 async function handleResendCode() {
     clearNotification();
     if (!emailEnVerificacion) {
-        showNotification('Escribe tu correo primero intentando iniciar sesión.', 'error');
+        showNotification('No se detectó un correo electrónico válido para reenviar.', 'error');
         return;
     }
     try {
-        // Usamos la ruta correspondiente del backend para disparar un código nuevo
         const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: emailEnVerificacion })
         });
-        const data = await res.json();
         if (res.ok) {
             showNotification('¡Código de activación reenviado a tu correo electrónico!', 'success');
         } else {
-            showNotification(data.mensaje || 'No se pudo reenviar.', 'error');
+            const data = await res.json();
+            showNotification(data.mensaje || 'No se pudo reenviar el código.', 'error');
         }
     } catch (err) {
         showNotification('Error al conectar con el servidor.', 'error');
     }
 }
 
-// Reenvío de código para el formulario de Restablecer contraseña
+// Reenviar código del formulario de Restablecer contraseña
 async function handleResendResetCode() {
     clearNotification();
     if (!emailEnVerificacion) {
