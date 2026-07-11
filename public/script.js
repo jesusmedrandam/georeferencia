@@ -11,8 +11,12 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('tabRegisterBtn').addEventListener('click', () => switchTab('register'));
     document.getElementById('goToForgotLink').addEventListener('click', () => switchTab('forgot'));
     
+    // Asignar el comportamiento a TODOS los botones de "Volver al Login"
     document.querySelectorAll('.go-back-login').forEach(btn => {
-        btn.addEventListener('click', () => switchTab('login'));
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            switchTab('login');
+        });
     });
 
     // Controladores de Formularios
@@ -22,8 +26,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('registerForm').addEventListener('submit', handleRegister);
     document.getElementById('verifyForm').addEventListener('submit', handleVerify);
 
-    // Controlador para Reenviar Código
+    // Controladores para Reenviar Códigos (Tanto para Verificación como para Reset)
     document.getElementById('btnResendCode').addEventListener('click', handleResendCode);
+    document.getElementById('btnResendResetCode').addEventListener('click', handleResendResetCode);
 
     // Guardar cambios y perfil
     document.getElementById('btnSaveProfile').addEventListener('click', (e) => {
@@ -143,11 +148,11 @@ async function handleLogin(e) {
             usuarioActual = data.usuario;
             cargarDashboard();
         } else {
-            // Si el backend avisa que falta verificar la cuenta, enviamos automáticamente a la pestaña de verificación
-            if (data.mensaje && data.mensaje.toLowerCase().includes('verifica')) {
+            // CORRECCIÓN: Si el mensaje contiene "verificado", asumimos que existe pero requiere activarse
+            if (data.mensaje && data.mensaje.toLowerCase().includes('verificado')) {
                 emailEnVerificacion = email; 
                 switchTab('verify');
-                showNotification('Tu cuenta no está verificada. Por favor, introduce el código enviado a tu correo.', 'error');
+                showNotification('Tu cuenta existe pero no está verificada. Por favor, introduce el código de activación.', 'error');
             } else {
                 showNotification(data.mensaje || 'Credenciales incorrectas.', 'error');
             }
@@ -157,10 +162,36 @@ async function handleLogin(e) {
     }
 }
 
+// Reenvío de código para activar cuenta por primera vez
 async function handleResendCode() {
     clearNotification();
     if (!emailEnVerificacion) {
-        showNotification('No hay un correo electrónico configurado para verificación.', 'error');
+        showNotification('Escribe tu correo primero intentando iniciar sesión.', 'error');
+        return;
+    }
+    try {
+        // Usamos la ruta correspondiente del backend para disparar un código nuevo
+        const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: emailEnVerificacion })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showNotification('¡Código de activación reenviado a tu correo electrónico!', 'success');
+        } else {
+            showNotification(data.mensaje || 'No se pudo reenviar.', 'error');
+        }
+    } catch (err) {
+        showNotification('Error al conectar con el servidor.', 'error');
+    }
+}
+
+// Reenvío de código para el formulario de Restablecer contraseña
+async function handleResendResetCode() {
+    clearNotification();
+    if (!emailEnVerificacion) {
+        showNotification('No se ha detectado un correo de restablecimiento.', 'error');
         return;
     }
     try {
@@ -169,14 +200,13 @@ async function handleResendCode() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: emailEnVerificacion })
         });
-        const data = await res.json();
         if (res.ok) {
-            showNotification('¡Un nuevo código ha sido enviado a tu correo electrónico!', 'success');
+            showNotification('¡Código de restablecimiento reenviado con éxito!', 'success');
         } else {
-            showNotification(data.mensaje || 'No se pudo reenviar el código.', 'error');
+            showNotification('No se pudo reenviar el código.', 'error');
         }
     } catch (err) {
-        showNotification('Error al conectar con el servidor para reenviar.', 'error');
+        showNotification('Error en el servidor.', 'error');
     }
 }
 
@@ -337,7 +367,6 @@ function toggleProfileDropdown(event) {
     document.getElementById('profileDropdown').classList.toggle('hidden');
 }
 
-// Cierra el menú de perfil si se hace click en el fondo del body
 document.addEventListener('click', () => {
     const dropdown = document.getElementById('profileDropdown');
     if (dropdown) dropdown.classList.add('hidden');
