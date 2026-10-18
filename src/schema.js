@@ -28,7 +28,9 @@ async function initializeDatabase(pool) {
       'codigo_verificacion_expira TIMESTAMPTZ',
       'codigo_verificacion_intentos INTEGER NOT NULL DEFAULT 0',
       'codigo_verificacion_ultimo_envio TIMESTAMPTZ',
-      'password_version INTEGER NOT NULL DEFAULT 0'
+      'password_version INTEGER NOT NULL DEFAULT 0',
+      'intentos_login INTEGER NOT NULL DEFAULT 0',
+      'bloqueado_hasta TIMESTAMPTZ'
     ]) {
       await client.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ${definition}`);
     }
