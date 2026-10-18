@@ -89,3 +89,53 @@ Se propone separar cuatro conceptos:
 Cuando empecemos esa fase, añade migraciones controladas para `reportes`, `evidencias`, `emergencias`, `emergencia_instituciones` y `bitacora`. Las notificaciones públicas requieren reglas de validación y evaluación de riesgo, no solo la clasificación automática por tipo.
 
 **GeoAlerta aún no es un servicio oficial de emergencias. Ante una emergencia real en Ecuador, utiliza el ECU 911.**
+
+
+## Fase 2: reportes ciudadanos y mapa (2026-10)
+
+El sistema permite que cualquier cuenta verificada envíe un reporte de incidente y consulte su historial. El rol de superadministrador también conserva la posibilidad de reportar como ciudadano.
+
+### Formulario ciudadano
+
+- Tipo de emergencia desde el catálogo de PostgreSQL (8 categorías iniciales).
+- Descripción obligatoria de 15 a 1500 caracteres.
+- Cantidad estimada de personas afectadas, observaciones opcionales y referencia del lugar.
+- Latitud/longitud obligatorias, seleccionables tocando el mapa Leaflet + OpenStreetMap, arrastrando el marcador, introduciendo coordenadas o aceptando la geolocalización del navegador.
+- Hasta **3 fotografías** JPEG/PNG/WebP de máximo **3 MB cada una**. Sharp normaliza las imágenes a WebP, las redimensiona y retira metadatos EXIF, incluidos datos GPS. En este prototipo las imágenes se almacenan en PostgreSQL en BYTEA. Para escala real debe sustituirse por almacenamiento de objetos con autorización de lectura.
+- Hasta **5 reportes por usuario en una hora** como limitación inicial contra abusos. No sustituye controles adicionales por IP/cuenta.
+
+### Privacidad y validación
+
+Un reporte se crea con estado **pendiente**. Su autor lo puede consultar en **Mis reportes**, incluidas sus fotografías, mediante endpoints autenticados que comprueban la propiedad del registro. No se publica públicamente como emergencia validada.
+
+La nueva tabla `emergencias` es distinta de `reportes`. El mapa de emergencias verificadas solo utiliza registros de `emergencias` y se mostrará **vacío al comienzo**, hasta que se implemente el panel de validación institucional. Este es el comportamiento correcto. Los puntos azules del mapa son únicamente reportes del usuario autenticado (en la página del historial visible). Los rojos representarán emergencias ya validadas.
+
+Los estados del reporte son `pendiente`, `informacion_solicitada`, `validado` y `rechazado`. Los estados de una emergencia validada son `validada`, `en_atencion`, `controlada` y `cerrada`. La fase 2 **no agrega aún botones para validar o rechazar**: corresponden a la fase 3 y deben verificar el rol institucional autorizado del lado del servidor.
+
+### Nuevos endpoints (sesión Bearer obligatoria)
+
+| Método | Ruta | Descripción |
+| --- | --- | --- |
+| GET | `/api/tipos-emergencia` | Catálogo activo |
+| POST | `/api/reportes` | Multipart/form-data: tipo_id, descripcion, personas_afectadas, latitud, longitud, observaciones, referencia_ubicacion, fotografias (opcional) |
+| GET | `/api/reportes/mios?pagina=1` | Historial del ciudadano; 20 reportes por página |
+| GET | `/api/reportes/:id/fotos/:fotoId` | Foto de un reporte propio, tras comprobar el propietario |
+| GET | `/api/mapa/emergencias` | Máximo 500 emergencias verificadas no cerradas, sin datos privados del autor |
+
+### Aiven / Render
+
+**No ejecutes SQL adicional si el servicio de Render ya inicia correctamente con el código de `main`.** `src/report-schema.js` crea las tablas `tipos_emergencia`, `reportes`, `reporte_fotografias`, `emergencias` y `reporte_bitacora`, sus índices y las categorías iniciales en una transacción al arrancar. No borra `usuarios` ni `instituciones`.
+
+Render tiene que poder instalar las nuevas dependencias de `package.json`, incluida `sharp`, y conservar las variables `DATABASE_URL`, `JWT_SECRET` y `BREVO_API_KEY`. El mapa necesita conexión para obtener las teselas de OpenStreetMap, pero el formulario permite introducir las coordenadas manualmente si no se carga el mapa.
+
+### Verificación sugerida
+
+1. Inicia sesión y abre **Reportes de emergencia**.
+2. Selecciona una categoría, escribe la descripción, marca la ubicación y envía un reporte de prueba.
+3. Comprueba el mensaje `pendiente` y el punto azul en **Mis reportes**.
+4. Adjunta una foto, comprueba que se muestra al pulsar `Ver fotografía(s)`.
+5. Inicia sesión con otro usuario y verifica que no puede consultar el reporte ni recuperar la foto del primer usuario.
+6. Comprueba que el mapa de emergencias verificadas está vacío hasta que se implemente la revisión institucional.
+7. Ejecuta `npm test` y `npm run check` para las pruebas automáticas.
+
+**Advertencia:** GeoAlerta sigue en desarrollo. El formulario no envía avisos a instituciones ni servicios oficiales todavía. Para emergencias reales en Ecuador se debe llamar al ECU 911.
