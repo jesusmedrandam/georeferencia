@@ -21,6 +21,7 @@ async function initializeDatabase(pool) {
     `);
     for (const definition of [
       'foto_perfil BYTEA',
+      'foto_perfil_mime VARCHAR(50)',
       'activo BOOLEAN NOT NULL DEFAULT TRUE',
       'es_superadmin BOOLEAN NOT NULL DEFAULT FALSE',
       'codigo_verificacion_hash VARCHAR(64)',
