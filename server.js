@@ -105,10 +105,13 @@ app.get('/api/auth/me', verificarToken, async (req, res) => {
                 email: usuario.email,
                 telefono: usuario.telefono,
                 fecha_nacimiento: usuario.fecha_nacimiento, // Agregado para persistencia en front
-                foto_url: fotoBase64
+                foto_url: fotoBase64,
+                rol_global: usuario.es_superadmin ? 'superadministrador' : 'ciudadano',
+                instituciones: await getUserAccess(pool, usuario.id)
             }
         });
     } catch (err) {
+        console.error('Error al recuperar sesión:', err);
         return res.status(500).json({ mensaje: 'Error al recuperar la sesión.' });
     }
 });
@@ -273,6 +276,14 @@ app.post('/api/auth/reset-password', async (req, res) => {
 // 6. ACTUALIZAR PERFIL (CON VALIDACIÓN DE CONTRASEÑA ACTUAL Y FECHA DE NACIMIENTO)
 app.put('/api/usuario/perfil', verificarToken, upload.single('foto_perfil'), async (req, res) => {
     const { nombre, apellido, telefono, fecha_nacimiento, passwordActual, passwordNueva } = req.body;
+    if (!nombre?.trim() || !apellido?.trim() || nombre.length > 100 || apellido.length > 100 ||
+        (telefono && telefono.length > 20) || (passwordNueva && (passwordNueva.length < 8 || passwordNueva.length > 72)) ||
+        (!!passwordActual !== !!passwordNueva)) {
+        return res.status(400).json({ mensaje: 'Datos inválidos. Para cambiar la contraseña indica la actual y una nueva de al menos 8 caracteres.' });
+    }
+    if (req.file && !['image/jpeg', 'image/png', 'image/webp'].includes(req.file.mimetype)) {
+        return res.status(400).json({ mensaje: 'La foto debe ser JPEG, PNG o WebP.' });
+    }
     
     try {
         // 1. Buscar al usuario actual en la base de datos para validar credenciales e información previa
@@ -301,9 +312,10 @@ app.put('/api/usuario/perfil', verificarToken, upload.single('foto_perfil'), asy
         // 4. Ejecutar actualización unificada en PostgreSQL
         await pool.query(
             `UPDATE usuarios 
-             SET nombre = $1, apellido = $2, telefono = $3, fecha_nacimiento = $4, password = $5, foto_perfil = $6 
-             WHERE id = $7`,
-            [nombre, apellido, telefono, fecha_nacimiento, passwordFinal, fotoFinal, req.usuarioId]
+             SET nombre = $1, apellido = $2, telefono = $3, fecha_nacimiento = $4, password = $5, foto_perfil = $6,
+                 password_version = password_version + $7
+             WHERE id = $8`,
+            [nombre.trim(), apellido.trim(), telefono || null, fecha_nacimiento || usuarioDb.fecha_nacimiento, passwordFinal, fotoFinal, passwordNueva ? 1 : 0, req.usuarioId]
         );
 
         // 5. Obtener los nuevos datos actualizados para responderle al frontend
@@ -317,13 +329,16 @@ app.put('/api/usuario/perfil', verificarToken, upload.single('foto_perfil'), asy
 
         return res.json({
             mensaje: 'Perfil actualizado correctamente.',
+            ...(passwordNueva ? { token: jwt.sign({ id: user.id, v: user.password_version }, JWT_SECRET, { expiresIn: '7d' }) } : {}),
             usuario: { 
                 nombre: user.nombre, 
                 apellido: user.apellido, 
                 email: user.email, 
                 telefono: user.telefono, 
                 fecha_nacimiento: user.fecha_nacimiento, // Agregado
-                foto_url: fotoBase64 
+                foto_url: fotoBase64,
+                rol_global: user.es_superadmin ? 'superadministrador' : 'ciudadano',
+                instituciones: await getUserAccess(pool, user.id)
             }
         });
 
@@ -333,5 +348,14 @@ app.put('/api/usuario/perfil', verificarToken, upload.single('foto_perfil'), asy
     }
 });
 
+mountInstitutionRoutes(app, pool, verificarToken);
+
+// Nunca exponer las rutas hasta completar las migraciones.
+// Una migración fallida detiene el proceso para no operar con tablas incompletas.
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor activo en el puerto ${PORT}`));
+initializeDatabase(pool)
+  .then(() => app.listen(PORT, () => console.log('GeoAlerta activo en puerto ' + PORT)))
+  .catch(error => {
+    console.error('No se pudo inicializar PostgreSQL:', error);
+    process.exit(1);
+  });
