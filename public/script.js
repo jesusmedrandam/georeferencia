@@ -227,6 +227,7 @@ function cargarDashboard() {
     document.getElementById('profApellido').value = usuarioActual.apellido;
     document.getElementById('profTelefono').value = usuarioActual.telefono || '';
     cargarInstituciones().catch(error => mostrarMensajeInstitucional(error.message));
+    cargarReportes().catch(error => mensajeReporte(error.message, true));
 }
 
 async function saveProfile() {
@@ -375,6 +376,8 @@ document.addEventListener('click', () => {
 });
 
 function logout() {
+    limpiarModuloReportes();
+    usuarioActual = null;
     localStorage.removeItem('token');
     document.getElementById('dashboardScreen').classList.add('hidden');
     document.getElementById('loginScreen').classList.remove('hidden');

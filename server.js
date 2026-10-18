@@ -7,6 +7,8 @@ const cors = require('cors');
 const multer = require('multer'); 
 require('dotenv').config();
 const { initializeDatabase } = require('./src/schema');
+const { initializeReportSchema } = require('./src/report-schema');
+const { mountReportRoutes } = require('./src/reports');
 const { getUserAccess, mountInstitutionRoutes } = require('./src/institutions');
 const { crearCodigo, verificarCodigo, consumirCodigo } = require('./src/auth-codes');
 
@@ -351,11 +353,13 @@ app.put('/api/usuario/perfil', verificarToken, upload.single('foto_perfil'), asy
 });
 
 mountInstitutionRoutes(app, pool, verificarToken);
+mountReportRoutes(app, pool, verificarToken);
 
 // Nunca exponer las rutas hasta completar las migraciones.
 // Una migración fallida detiene el proceso para no operar con tablas incompletas.
 const PORT = process.env.PORT || 3000;
 initializeDatabase(pool)
+  .then(() => initializeReportSchema(pool))
   .then(() => app.listen(PORT, () => console.log('GeoAlerta activo en puerto ' + PORT)))
   .catch(error => {
     console.error('No se pudo inicializar PostgreSQL:', error);

@@ -6,7 +6,7 @@
   "scripts": {
     "test": "node --test",
     "start": "node server.js",
-    "check": "node --check server.js && node --check public/script.js && node --check public/institutions.js && node --check src/institutions.js && node --check src/schema.js && node --check src/auth-codes.js"
+    "check": "node --check server.js && node --check public/script.js && node --check public/institutions.js && node --check src/institutions.js && node --check src/schema.js && node --check src/auth-codes.js && node --check src/report-schema.js && node --check src/reports.js && node --check public/reports.js"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +21,7 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.13",
-    "pg": "^8.11.5"
+    "pg": "^8.11.5",
+    "sharp": "^0.34.3"
   }
 }
