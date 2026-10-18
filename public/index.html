@@ -113,6 +113,22 @@
             .alert-box { flex-direction: column; text-align: center; padding: 20px; gap: 15px; }
             .dropdown-profile { right: -15px; width: calc(100vw - 30px); max-width: 320px; }
         }
+    
+        /* Gestión institucional */
+        .inst-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:18px}
+        .inst-panel{background:var(--card-bg);border:1px solid var(--border-color);border-radius:18px;padding:24px}
+        .inst-panel h2,.inst-panel h3{margin-bottom:12px}
+        .inst-panel p{color:var(--text-muted);font-size:14px;line-height:1.5}
+        .inst-panel input,.inst-panel select,.inst-panel textarea{width:100%;background:var(--input-bg);border:1px solid var(--border-color);border-radius:10px;padding:10px;color:var(--text-main);margin:7px 0 12px;font:inherit}
+        .inst-panel label{display:block;font-size:13px;color:var(--text-muted)}
+        .inst-panel button{min-height:42px;border-radius:10px;border:1px solid var(--border-color);padding:9px 14px;background:var(--accent-primary);color:#fff;cursor:pointer;font:inherit}
+        .inst-panel button.secondary{background:transparent;color:var(--text-main)}
+        .inst-panel button:disabled{opacity:.6;cursor:not-allowed}
+        .inst-row{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--border-color)}
+        .inst-row:last-child{border-bottom:0}
+        .inst-message{min-height:1.5em;margin-top:10px;color:var(--text-muted);font-size:14px}
+        .inst-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}
+
     </style>
 </head>
 <body>
@@ -281,6 +297,52 @@
                     <p style="color: var(--text-muted); font-size: 14px;">El sistema de alertas georreferenciadas se encuentra en línea y listo para reportar incidentes.</p>
                 </div>
             </div>
+
+            <section id="institutionArea" aria-label="Gestión de instituciones">
+                <div class="inst-grid">
+                    <div class="inst-panel">
+                        <div class="inst-head"><h2>Mis instituciones</h2><span id="etiquetaRol" style="font-size:13px;color:var(--text-muted)">Ciudadano</span></div>
+                        <p id="instResumen">Consulta las instituciones en las que participas.</p>
+                        <label for="institucionSelect">Institución</label>
+                        <select id="institucionSelect" aria-label="Seleccionar institución"></select>
+                        <p id="instRolSeleccionado"></p>
+                        <p class="inst-message" id="instMensaje" role="status" aria-live="polite"></p>
+                    </div>
+                    <div class="inst-panel hidden" id="superAdminPanel">
+                        <h3>Registrar institución</h3>
+                        <p>Solo el superadministrador puede dar de alta instituciones.</p>
+                        <form id="formNuevaInstitucion">
+                            <label for="nuevaInstNombre">Nombre</label>
+                            <input id="nuevaInstNombre" required maxlength="160" placeholder="Ej.: Cuerpo de Bomberos" />
+                            <label for="nuevaInstTipo">Tipo</label>
+                            <select id="nuevaInstTipo" required>
+                                <option value="bomberos">Bomberos</option><option value="policia">Policía</option>
+                                <option value="salud">Salud</option><option value="riesgos">Gestión de riesgos</option>
+                                <option value="servicios">Servicios básicos</option><option value="municipio">Municipio</option>
+                                <option value="otra">Otra</option>
+                            </select>
+                            <label for="nuevaInstDescripcion">Descripción (opcional)</label>
+                            <textarea id="nuevaInstDescripcion" rows="2" maxlength="2000"></textarea>
+                            <button type="submit">Crear institución</button>
+                        </form>
+                        <button id="instToggleActive" type="button" class="secondary" style="margin-top:12px">Desactivar institución seleccionada</button>
+                    </div>
+                    <div class="inst-panel hidden" id="gestionMiembros">
+                        <h3>Personal institucional</h3>
+                        <p>Asigna usuarios verificados de GeoAlerta como operadores o administradores.</p>
+                        <form id="formAgregarMiembro">
+                            <label for="miembroEmail">Correo de la persona</label>
+                            <input type="email" id="miembroEmail" required placeholder="usuario@ejemplo.com" />
+                            <label for="miembroRol">Permiso</label>
+                            <select id="miembroRol">
+                                <option value="operador">Operador</option><option value="administrador">Administrador institucional</option>
+                            </select>
+                            <button type="submit">Agregar a la institución</button>
+                        </form>
+                        <div id="listaMiembros" aria-live="polite"></div>
+                    </div>
+                </div>
+            </section>
         </div>
     </div>
 
