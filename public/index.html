@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoZOZUeZ9qjL2E93+3pi9L7Q==" crossorigin="">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <style>
         :root {
             --bg-color: #0b0f19;
@@ -165,6 +165,7 @@
         @media(max-width:850px){.reporte-grid{grid-template-columns:1fr}.reporte-card{padding:16px}.reporte-map{height:260px}.reporte-input-row{grid-template-columns:1fr 1fr}}
 
     </style>
+    <link rel="stylesheet" href="reports.css?v=2">
 </head>
 <body>
 
@@ -334,62 +335,123 @@
             </div>
 
 
-            <section class="reporte-area" id="reportesArea" aria-label="Reportar y consultar emergencias">
-              <div class="reporte-header">
+
+            <section class="reporte-area" id="reportesArea" aria-label="Reportes de emergencia">
+              <header class="reporte-header reporte-intro">
                 <div>
                   <h2>Reportes de emergencia</h2>
-                  <p>Registra una situación y marca su ubicación. Los reportes nuevos son privados hasta su validación.</p>
+                  <p>Describe lo ocurrido y señala el lugar en el mapa. Tu reporte permanecerá pendiente hasta que sea revisado.</p>
                 </div>
-              </div>
+              </header>
               <div class="reporte-grid">
                 <div class="reporte-card">
-                  <h3><i class="fa-solid fa-triangle-exclamation"></i> Registrar reporte</h3>
+                  <div class="reporte-card-head">
+                    <span class="reporte-card-icon" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                    <div><h3>Nuevo reporte</h3><p>Completa los datos del incidente.</p></div>
+                  </div>
                   <form id="formReporte" enctype="multipart/form-data">
-                    <label for="reporteTipo">Tipo de emergencia *</label>
-                    <select id="reporteTipo" name="tipo_id" required><option value="">Cargando categorías...</option></select>
-                    <label for="reporteDescripcion">¿Qué ocurrió? *</label>
-                    <textarea id="reporteDescripcion" name="descripcion" required minlength="15" maxlength="1500" placeholder="Describe lo ocurrido (mínimo 15 caracteres)"></textarea>
-                    <div class="reporte-input-row">
-                      <div>
-                        <label for="reporteAfectadas">Personas afectadas *</label>
-                        <input id="reporteAfectadas" name="personas_afectadas" type="number" min="0" max="100000" step="1" value="0" required>
-                      </div>
-                      <div>
-                        <label for="reporteFotos">Fotografías (máximo 3)</label>
-                        <input id="reporteFotos" name="fotografias" type="file" multiple accept="image/jpeg,image/png,image/webp">
-                      </div>
+                    <div class="reporte-field">
+                      <label for="reporteTipo">Tipo de emergencia *</label>
+                      <select id="reporteTipo" name="tipo_id" required>
+                        <option value="">Cargando categorías...</option>
+                      </select>
                     </div>
-                    <label for="reporteObservaciones">Observaciones adicionales</label>
-                    <textarea id="reporteObservaciones" name="observaciones" maxlength="1000" placeholder="Información útil para quien revise el reporte" rows="2"></textarea>
-                    <label for="reporteReferencia">Referencia de ubicación (opcional)</label>
-                    <input id="reporteReferencia" name="referencia_ubicacion" maxlength="250" placeholder="Ej.: junto a la escuela, vía principal">
-                    <p class="reporte-meta">Indica la ubicación en el mapa o usa «Mi ubicación» con permiso del navegador.</p>
-                    <div class="reporte-input-row">
-                      <div><label for="reporteLatitud">Latitud *</label>
-                        <input id="reporteLatitud" name="latitud" type="number" step="any" min="-90" max="90" required placeholder="-1.234567"></div>
-                      <div><label for="reporteLongitud">Longitud *</label>
-                        <input id="reporteLongitud" name="longitud" type="number" step="any" min="-180" max="180" required placeholder="-80.123456"></div>
+                    <div class="reporte-field">
+                      <label for="reporteDescripcion">¿Qué ocurrió? *</label>
+                      <textarea id="reporteDescripcion" name="descripcion" required minlength="15" maxlength="1500"
+                        placeholder="Ej.: Un árbol cayó sobre la vía y está bloqueando el tránsito."></textarea>
+                      <p class="reporte-field-hint">Describe lo sucedido con la mayor claridad posible.</p>
                     </div>
-                    <button id="enviarReporte" type="submit" class="primary"><i class="fa-solid fa-paper-plane"></i> Enviar reporte</button>
-                    <p class="reporte-mensaje" id="reporteMensaje" role="status" aria-live="polite"></p>
+                    <div class="reporte-field">
+                      <label for="reporteAfectadas">Personas afectadas *</label>
+                      <input id="reporteAfectadas" name="personas_afectadas" type="number" min="0" max="100000" step="1" value="0" required>
+                    </div>
+                    <div class="reporte-field">
+                      <label for="reporteObservaciones">Observaciones adicionales</label>
+                      <textarea id="reporteObservaciones" name="observaciones" maxlength="1000"
+                        placeholder="Peligros adicionales, acceso al lugar, referencias útiles..." rows="2"></textarea>
+                    </div>
+                    <div class="reporte-field">
+                      <label for="reporteFotos">Fotografías (opcional)</label>
+                      <div class="reporte-upload">
+                        <input class="reporte-upload-input" id="reporteFotos" name="fotografias" type="file"
+                          multiple accept="image/jpeg,image/png,image/webp" aria-describedby="reporteArchivosAyuda">
+                        <label class="reporte-upload-target" for="reporteFotos">
+                          <i class="fa-solid fa-images" aria-hidden="true"></i>
+                          <span><strong>Seleccionar fotografías</strong>
+                            <small id="reporteArchivosAyuda">Hasta 3 imágenes, máximo 3 MB cada una.</small></span>
+                        </label>
+                      </div>
+                      <div class="reporte-archivos" id="reporteArchivosPreview" aria-live="polite"></div>
+                    </div>
                   </form>
                 </div>
+
                 <div class="reporte-card">
-                  <h3><i class="fa-solid fa-map-location-dot"></i> Mapa de emergencias</h3>
-                  <div id="reporteMapa" class="reporte-map" aria-label="Mapa para seleccionar la ubicación del reporte"></div>
-                  <div class="reporte-map-actions">
-                    <button type="button" id="botonMiUbicacion"><i class="fa-solid fa-location-crosshairs"></i> Mi ubicación</button>
-                    <button type="button" id="botonLimpiarUbicacion">Quitar marcador</button>
+                  <div class="reporte-card-head">
+                    <span class="reporte-card-icon reporte-card-icon--map" aria-hidden="true">
+                      <i class="fa-solid fa-map-location-dot"></i>
+                    </span>
+                    <div><h3>Ubicación del incidente</h3><p>Haz clic en el mapa o coloca las coordenadas.</p></div>
                   </div>
-                  <p class="reporte-meta">Toca el mapa para indicar dónde ocurrió el incidente. <strong style="color:#91cafc">Azul</strong>: tus reportes. <strong style="color:#fca5a5">Rojo</strong>: emergencias verificadas.</p>
-                  <p id="mapaEstado" class="reporte-meta" role="status" aria-live="polite">Cargando mapa...</p>
-                  <p class="reporte-meta">Este sistema está en desarrollo. Ante una emergencia real en Ecuador, llama al ECU 911. El reporte web no sustituye la llamada.</p>
+                  <div class="reporte-map-shell">
+                    <div id="reporteMapa" class="reporte-map"
+                      aria-label="Mapa interactivo para seleccionar la ubicación de un reporte"></div>
+                  </div>
+                  <div class="reporte-map-actions">
+                    <button type="button" id="botonMiUbicacion">
+                      <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i> Mi ubicación
+                    </button>
+                    <button type="button" id="botonLimpiarUbicacion">
+                      <i class="fa-solid fa-xmark" aria-hidden="true"></i> Quitar marcador
+                    </button>
+                  </div>
+                  <div class="reporte-localizacion">
+                    <h4>Coordenadas del incidente *</h4>
+                    <div class="reporte-input-row">
+                      <div class="reporte-field">
+                        <label for="reporteLatitud">Latitud</label>
+                        <input id="reporteLatitud" name="latitud" form="formReporte"
+                          type="number" step="any" min="-90" max="90" required placeholder="-1.234567">
+                      </div>
+                      <div class="reporte-field">
+                        <label for="reporteLongitud">Longitud</label>
+                        <input id="reporteLongitud" name="longitud" form="formReporte"
+                          type="number" step="any" min="-180" max="180" required placeholder="-80.123456">
+                      </div>
+                    </div>
+                    <div class="reporte-field">
+                      <label for="reporteReferencia">Referencia del lugar (opcional)</label>
+                      <input id="reporteReferencia" name="referencia_ubicacion" form="formReporte"
+                        maxlength="250" placeholder="Ej.: junto a la escuela o vía principal">
+                    </div>
+                  </div>
+                  <p class="reporte-map-hint">El GPS solo coloca un punto inicial. Puedes moverlo hasta el lugar exacto del incidente.</p>
+                  <div class="reporte-leyenda" aria-label="Leyenda del mapa">
+                    <span><i class="reporte-punto" aria-hidden="true"></i> Tus reportes</span>
+                    <span><i class="reporte-punto reporte-punto--confirmada" aria-hidden="true"></i> Emergencias verificadas</span>
+                  </div>
+                  <p id="mapaEstado" class="reporte-map-state" role="status" aria-live="polite">Cargando mapa...</p>
+                  <p class="reporte-disclaimer">GeoAlerta está en desarrollo. Ante una emergencia real en Ecuador, llama al ECU 911.</p>
                 </div>
               </div>
-              <div class="reporte-card">
+              <div class="reporte-actions">
+                <p class="reporte-mensaje" id="reporteMensaje" role="status" aria-live="polite"></p>
+                <button id="enviarReporte" type="submit" form="formReporte" class="primary">
+                  <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Enviar reporte
+                </button>
+              </div>
+              <div class="reporte-card reporte-history">
                 <div class="reporte-header">
-                  <h3><i class="fa-solid fa-clock-rotate-left"></i> Mis reportes</h3>
-                  <button id="botonActualizarReportes" type="button">Actualizar</button>
+                  <div class="reporte-card-head">
+                    <span class="reporte-card-icon reporte-card-icon--history" aria-hidden="true">
+                      <i class="fa-solid fa-clock-rotate-left"></i>
+                    </span>
+                    <div><h3>Mis reportes</h3><p>Consulta el estado y los detalles de tus reportes anteriores.</p></div>
+                  </div>
+                  <button id="botonActualizarReportes" type="button">
+                    <i class="fa-solid fa-rotate" aria-hidden="true"></i> Actualizar
+                  </button>
                 </div>
                 <div id="listaReportes" class="reporte-lista" aria-live="polite"></div>
                 <div class="reporte-paginacion">
