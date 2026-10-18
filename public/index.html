@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoZOZUeZ9qjL2E93+3pi9L7Q==" crossorigin="">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <style>
         :root {
             --bg-color: #0b0f19;
@@ -131,40 +131,9 @@
         .inst-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}
 
 
-        /* Reportes de emergencia - fase 2 */
-        .reporte-area { display:flex; flex-direction:column; gap:18px; }
-        .reporte-header { display:flex; flex-wrap:wrap; gap:12px; align-items:start; justify-content:space-between; }
-        .reporte-header p { color:var(--text-muted);font-size:14px;margin-top:6px;line-height:1.5; }
-        .reporte-grid { display:grid; grid-template-columns:minmax(0, 0.95fr) minmax(0,1.05fr); gap:18px;align-items:start; }
-        .reporte-card { min-width:0;background:var(--card-bg);border:1px solid var(--border-color);border-radius:18px;padding:22px; }
-        .reporte-card h3 {font-size:18px;margin-bottom:12px}
-        .reporte-card label {font-size:13px;display:block;color:#cbd5e1;margin-bottom:6px}
-        .reporte-card input,.reporte-card textarea,.reporte-card select {display:block;width:100%;background:var(--input-bg);color:var(--text-main);border:1px solid #394253;border-radius:10px;padding:11px 12px;margin-bottom:13px;font:inherit;font-size:14px;}
-        .reporte-card textarea {min-height:95px;resize:vertical}
-        .reporte-card button {font:inherit;border:1px solid var(--border-color);background:#273449;color:#fff;padding:10px 15px;min-height:42px;border-radius:10px;cursor:pointer}
-        .reporte-card button.primary {background:#d73535;border-color:#d73535;font-weight:700}
-        .reporte-card button:disabled {opacity:.55;cursor:not-allowed}
-        .reporte-meta {font-size:12px;color:#b9c6d5;line-height:1.5;margin:8px 0}
-        .reporte-input-row {display:grid;grid-template-columns:1fr 1fr;gap:10px}
-        .reporte-map {width:100%;height:305px;min-height:240px;border-radius:12px;background:#203345;z-index:0}
-        .reporte-map-actions {display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
-        .reporte-mensaje {padding-top:10px;font-size:14px;min-height:26px;white-space:pre-wrap}
-        .reporte-mensaje[data-error="true"]{color:#fca5a5}
-        .reporte-mensaje[data-error="false"]{color:#86efac}
-        .reporte-lista {display:grid;gap:12px;margin-top:14px}
-        .reporte-item {border:1px solid #2a364b;border-radius:12px;padding:16px;background:#0a1424}
-        .reporte-item-head {display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
-        .reporte-estado {display:inline-flex;padding:5px 9px;border-radius:99px;background:#283248;color:#e2e8f0;font-size:12px}
-        .reporte-estado[data-estado="pendiente"]{background:#473314;color:#fde68a}
-        .reporte-estado[data-estado="validado"]{background:#16392f;color:#a7f3d0}
-        .reporte-estado[data-estado="rechazado"]{background:#45232c;color:#fecaca}
-        .reporte-item p {line-height:1.5;color:#d5dee9;overflow-wrap:anywhere;margin-top:8px;font-size:14px}
-        .reporte-fotos {display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-        .reporte-fotos img {width:120px;height:90px;object-fit:cover;border-radius:8px}
-        .reporte-paginacion {display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:14px}
-        @media(max-width:850px){.reporte-grid{grid-template-columns:1fr}.reporte-card{padding:16px}.reporte-map{height:260px}.reporte-input-row{grid-template-columns:1fr 1fr}}
-
+        /* Los estilos del módulo de reportes están en reports.css */
     </style>
+    <link rel="stylesheet" href="reports.css?v=2">
 </head>
 <body>
 
@@ -334,62 +303,123 @@
             </div>
 
 
-            <section class="reporte-area" id="reportesArea" aria-label="Reportar y consultar emergencias">
-              <div class="reporte-header">
+
+            <section class="reporte-area" id="reportesArea" aria-label="Reportes de emergencia">
+              <header class="reporte-header reporte-intro">
                 <div>
                   <h2>Reportes de emergencia</h2>
-                  <p>Registra una situación y marca su ubicación. Los reportes nuevos son privados hasta su validación.</p>
+                  <p>Describe lo ocurrido y señala el lugar en el mapa. Tu reporte permanecerá pendiente hasta que sea revisado.</p>
                 </div>
-              </div>
+              </header>
               <div class="reporte-grid">
                 <div class="reporte-card">
-                  <h3><i class="fa-solid fa-triangle-exclamation"></i> Registrar reporte</h3>
+                  <div class="reporte-card-head">
+                    <span class="reporte-card-icon" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                    <div><h3>Nuevo reporte</h3><p>Completa los datos del incidente.</p></div>
+                  </div>
                   <form id="formReporte" enctype="multipart/form-data">
-                    <label for="reporteTipo">Tipo de emergencia *</label>
-                    <select id="reporteTipo" name="tipo_id" required><option value="">Cargando categorías...</option></select>
-                    <label for="reporteDescripcion">¿Qué ocurrió? *</label>
-                    <textarea id="reporteDescripcion" name="descripcion" required minlength="15" maxlength="1500" placeholder="Describe lo ocurrido (mínimo 15 caracteres)"></textarea>
-                    <div class="reporte-input-row">
-                      <div>
-                        <label for="reporteAfectadas">Personas afectadas *</label>
-                        <input id="reporteAfectadas" name="personas_afectadas" type="number" min="0" max="100000" step="1" value="0" required>
-                      </div>
-                      <div>
-                        <label for="reporteFotos">Fotografías (máximo 3)</label>
-                        <input id="reporteFotos" name="fotografias" type="file" multiple accept="image/jpeg,image/png,image/webp">
-                      </div>
+                    <div class="reporte-field">
+                      <label for="reporteTipo">Tipo de emergencia *</label>
+                      <select id="reporteTipo" name="tipo_id" required>
+                        <option value="">Cargando categorías...</option>
+                      </select>
                     </div>
-                    <label for="reporteObservaciones">Observaciones adicionales</label>
-                    <textarea id="reporteObservaciones" name="observaciones" maxlength="1000" placeholder="Información útil para quien revise el reporte" rows="2"></textarea>
-                    <label for="reporteReferencia">Referencia de ubicación (opcional)</label>
-                    <input id="reporteReferencia" name="referencia_ubicacion" maxlength="250" placeholder="Ej.: junto a la escuela, vía principal">
-                    <p class="reporte-meta">Indica la ubicación en el mapa o usa «Mi ubicación» con permiso del navegador.</p>
-                    <div class="reporte-input-row">
-                      <div><label for="reporteLatitud">Latitud *</label>
-                        <input id="reporteLatitud" name="latitud" type="number" step="any" min="-90" max="90" required placeholder="-1.234567"></div>
-                      <div><label for="reporteLongitud">Longitud *</label>
-                        <input id="reporteLongitud" name="longitud" type="number" step="any" min="-180" max="180" required placeholder="-80.123456"></div>
+                    <div class="reporte-field">
+                      <label for="reporteDescripcion">¿Qué ocurrió? *</label>
+                      <textarea id="reporteDescripcion" name="descripcion" required minlength="15" maxlength="1500"
+                        placeholder="Ej.: Un árbol cayó sobre la vía y está bloqueando el tránsito."></textarea>
+                      <p class="reporte-field-hint">Describe lo sucedido con la mayor claridad posible.</p>
                     </div>
-                    <button id="enviarReporte" type="submit" class="primary"><i class="fa-solid fa-paper-plane"></i> Enviar reporte</button>
-                    <p class="reporte-mensaje" id="reporteMensaje" role="status" aria-live="polite"></p>
+                    <div class="reporte-field">
+                      <label for="reporteAfectadas">Personas afectadas *</label>
+                      <input id="reporteAfectadas" name="personas_afectadas" type="number" min="0" max="100000" step="1" value="0" required>
+                    </div>
+                    <div class="reporte-field">
+                      <label for="reporteObservaciones">Observaciones adicionales</label>
+                      <textarea id="reporteObservaciones" name="observaciones" maxlength="1000"
+                        placeholder="Peligros adicionales, acceso al lugar, referencias útiles..." rows="2"></textarea>
+                    </div>
+                    <div class="reporte-field">
+                      <label for="reporteFotos">Fotografías (opcional)</label>
+                      <div class="reporte-upload">
+                        <input class="reporte-upload-input" id="reporteFotos" name="fotografias" type="file"
+                          multiple accept="image/jpeg,image/png,image/webp" aria-describedby="reporteArchivosAyuda">
+                        <label class="reporte-upload-target" for="reporteFotos">
+                          <i class="fa-solid fa-images" aria-hidden="true"></i>
+                          <span><strong>Seleccionar fotografías</strong>
+                            <small id="reporteArchivosAyuda">Hasta 3 imágenes, máximo 3 MB cada una.</small></span>
+                        </label>
+                      </div>
+                      <div class="reporte-archivos" id="reporteArchivosPreview" aria-live="polite"></div>
+                    </div>
                   </form>
                 </div>
+
                 <div class="reporte-card">
-                  <h3><i class="fa-solid fa-map-location-dot"></i> Mapa de emergencias</h3>
-                  <div id="reporteMapa" class="reporte-map" aria-label="Mapa para seleccionar la ubicación del reporte"></div>
-                  <div class="reporte-map-actions">
-                    <button type="button" id="botonMiUbicacion"><i class="fa-solid fa-location-crosshairs"></i> Mi ubicación</button>
-                    <button type="button" id="botonLimpiarUbicacion">Quitar marcador</button>
+                  <div class="reporte-card-head">
+                    <span class="reporte-card-icon reporte-card-icon--map" aria-hidden="true">
+                      <i class="fa-solid fa-map-location-dot"></i>
+                    </span>
+                    <div><h3>Ubicación del incidente</h3><p>Haz clic en el mapa o coloca las coordenadas.</p></div>
                   </div>
-                  <p class="reporte-meta">Toca el mapa para indicar dónde ocurrió el incidente. <strong style="color:#91cafc">Azul</strong>: tus reportes. <strong style="color:#fca5a5">Rojo</strong>: emergencias verificadas.</p>
-                  <p id="mapaEstado" class="reporte-meta" role="status" aria-live="polite">Cargando mapa...</p>
-                  <p class="reporte-meta">Este sistema está en desarrollo. Ante una emergencia real en Ecuador, llama al ECU 911. El reporte web no sustituye la llamada.</p>
+                  <div class="reporte-map-shell">
+                    <div id="reporteMapa" class="reporte-map"
+                      aria-label="Mapa interactivo para seleccionar la ubicación de un reporte"></div>
+                  </div>
+                  <div class="reporte-map-actions">
+                    <button type="button" id="botonMiUbicacion">
+                      <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i> Mi ubicación
+                    </button>
+                    <button type="button" id="botonLimpiarUbicacion">
+                      <i class="fa-solid fa-xmark" aria-hidden="true"></i> Quitar marcador
+                    </button>
+                  </div>
+                  <div class="reporte-localizacion">
+                    <h4>Coordenadas del incidente *</h4>
+                    <div class="reporte-input-row">
+                      <div class="reporte-field">
+                        <label for="reporteLatitud">Latitud</label>
+                        <input id="reporteLatitud" name="latitud" form="formReporte"
+                          type="number" step="any" min="-90" max="90" required placeholder="-1.234567">
+                      </div>
+                      <div class="reporte-field">
+                        <label for="reporteLongitud">Longitud</label>
+                        <input id="reporteLongitud" name="longitud" form="formReporte"
+                          type="number" step="any" min="-180" max="180" required placeholder="-80.123456">
+                      </div>
+                    </div>
+                    <div class="reporte-field">
+                      <label for="reporteReferencia">Referencia del lugar (opcional)</label>
+                      <input id="reporteReferencia" name="referencia_ubicacion" form="formReporte"
+                        maxlength="250" placeholder="Ej.: junto a la escuela o vía principal">
+                    </div>
+                  </div>
+                  <p class="reporte-map-hint">El GPS solo coloca un punto inicial. Puedes moverlo hasta el lugar exacto del incidente.</p>
+                  <div class="reporte-leyenda" aria-label="Leyenda del mapa">
+                    <span><i class="reporte-punto" aria-hidden="true"></i> Tus reportes</span>
+                    <span><i class="reporte-punto reporte-punto--confirmada" aria-hidden="true"></i> Emergencias verificadas</span>
+                  </div>
+                  <p id="mapaEstado" class="reporte-map-state" role="status" aria-live="polite">Cargando mapa...</p>
+                  <p class="reporte-disclaimer">GeoAlerta está en desarrollo. Ante una emergencia real en Ecuador, llama al ECU 911.</p>
                 </div>
               </div>
-              <div class="reporte-card">
+              <div class="reporte-actions">
+                <p class="reporte-mensaje" id="reporteMensaje" role="status" aria-live="polite"></p>
+                <button id="enviarReporte" type="submit" form="formReporte" class="primary">
+                  <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Enviar reporte
+                </button>
+              </div>
+              <div class="reporte-card reporte-history">
                 <div class="reporte-header">
-                  <h3><i class="fa-solid fa-clock-rotate-left"></i> Mis reportes</h3>
-                  <button id="botonActualizarReportes" type="button">Actualizar</button>
+                  <div class="reporte-card-head">
+                    <span class="reporte-card-icon reporte-card-icon--history" aria-hidden="true">
+                      <i class="fa-solid fa-clock-rotate-left"></i>
+                    </span>
+                    <div><h3>Mis reportes</h3><p>Consulta el estado y los detalles de tus reportes anteriores.</p></div>
+                  </div>
+                  <button id="botonActualizarReportes" type="button">
+                    <i class="fa-solid fa-rotate" aria-hidden="true"></i> Actualizar
+                  </button>
                 </div>
                 <div id="listaReportes" class="reporte-lista" aria-live="polite"></div>
                 <div class="reporte-paginacion">

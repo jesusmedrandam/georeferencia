@@ -12,6 +12,7 @@ let mapaIniciado = false;
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('formReporte').addEventListener('submit', enviarReporteCiudadano);
+  document.getElementById('reporteFotos').addEventListener('change', mostrarArchivosSeleccionados);
   document.getElementById('botonMiUbicacion').addEventListener('click', usarMiUbicacion);
   document.getElementById('botonLimpiarUbicacion').addEventListener('click', quitarUbicacion);
   document.getElementById('botonActualizarReportes').addEventListener('click',
@@ -296,6 +297,37 @@ function mostrarListadoReportes(reportes) {
   }
 }
 
+function mostrarArchivosSeleccionados() {
+  const entrada = document.getElementById('reporteFotos');
+  const contenedor = document.getElementById('reporteArchivosPreview');
+  const titulo = document.querySelector('.reporte-upload-target strong');
+  const archivos = Array.from(entrada.files || []);
+  contenedor.replaceChildren();
+
+  if (archivos.length > 3 || archivos.some(archivo => archivo.size > 3 * 1024 * 1024)) {
+    entrada.value = '';
+    if (titulo) titulo.textContent = 'Seleccionar fotografías';
+    mensajeReporte('Selecciona hasta 3 fotografías, con un tamaño máximo de 3 MB por archivo.', true);
+    return;
+  }
+
+  if (titulo) titulo.textContent = archivos.length
+    ? archivos.length === 1 ? '1 fotografía seleccionada' : archivos.length + ' fotografías seleccionadas'
+    : 'Seleccionar fotografías';
+
+  for (const archivo of archivos) {
+    const chip = document.createElement('span');
+    chip.className = 'reporte-archivo-chip';
+    const icono = document.createElement('i');
+    icono.className = 'fa-regular fa-image';
+    icono.setAttribute('aria-hidden', 'true');
+    const nombre = document.createElement('span');
+    nombre.textContent = archivo.name + ' (' + (archivo.size / (1024 * 1024)).toFixed(2) + ' MB)';
+    chip.append(icono, nombre);
+    contenedor.appendChild(chip);
+  }
+}
+
 async function enviarReporteCiudadano(evento) {
   evento.preventDefault();
   const formulario = document.getElementById('formReporte');
@@ -313,6 +345,7 @@ async function enviarReporteCiudadano(evento) {
     const res = await apiReportes('/api/reportes', { method: 'POST', body: contenido });
     const { mensaje } = await res.json();
     formulario.reset();
+    mostrarArchivosSeleccionados();
     quitarUbicacion();
     paginaReportes = 1;
     await refrescarReportes();
@@ -330,6 +363,7 @@ function limpiarModuloReportes() {
   liberarFotos();
   document.getElementById('listaReportes').replaceChildren();
   document.getElementById('formReporte').reset();
+  mostrarArchivosSeleccionados();
   quitarUbicacion();
   if (capaPropios) capaPropios.clearLayers();
   if (capaConfirmadas) capaConfirmadas.clearLayers();
