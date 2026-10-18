@@ -224,8 +224,6 @@
   overflow: hidden;
   isolation: isolate;
 }
-#reportesArea .reporte-map .leaflet-pane,
-#reportesArea .reporte-map .leaflet-control {z-index: auto;}
 #reportesArea .reporte-map .leaflet-top,
 #reportesArea .reporte-map .leaflet-bottom {z-index: 450;}
 #reportesArea .reporte-map .leaflet-control-attribution {
