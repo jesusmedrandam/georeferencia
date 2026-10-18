@@ -131,39 +131,7 @@
         .inst-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}
 
 
-        /* Reportes de emergencia - fase 2 */
-        .reporte-area { display:flex; flex-direction:column; gap:18px; }
-        .reporte-header { display:flex; flex-wrap:wrap; gap:12px; align-items:start; justify-content:space-between; }
-        .reporte-header p { color:var(--text-muted);font-size:14px;margin-top:6px;line-height:1.5; }
-        .reporte-grid { display:grid; grid-template-columns:minmax(0, 0.95fr) minmax(0,1.05fr); gap:18px;align-items:start; }
-        .reporte-card { min-width:0;background:var(--card-bg);border:1px solid var(--border-color);border-radius:18px;padding:22px; }
-        .reporte-card h3 {font-size:18px;margin-bottom:12px}
-        .reporte-card label {font-size:13px;display:block;color:#cbd5e1;margin-bottom:6px}
-        .reporte-card input,.reporte-card textarea,.reporte-card select {display:block;width:100%;background:var(--input-bg);color:var(--text-main);border:1px solid #394253;border-radius:10px;padding:11px 12px;margin-bottom:13px;font:inherit;font-size:14px;}
-        .reporte-card textarea {min-height:95px;resize:vertical}
-        .reporte-card button {font:inherit;border:1px solid var(--border-color);background:#273449;color:#fff;padding:10px 15px;min-height:42px;border-radius:10px;cursor:pointer}
-        .reporte-card button.primary {background:#d73535;border-color:#d73535;font-weight:700}
-        .reporte-card button:disabled {opacity:.55;cursor:not-allowed}
-        .reporte-meta {font-size:12px;color:#b9c6d5;line-height:1.5;margin:8px 0}
-        .reporte-input-row {display:grid;grid-template-columns:1fr 1fr;gap:10px}
-        .reporte-map {width:100%;height:305px;min-height:240px;border-radius:12px;background:#203345;z-index:0}
-        .reporte-map-actions {display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
-        .reporte-mensaje {padding-top:10px;font-size:14px;min-height:26px;white-space:pre-wrap}
-        .reporte-mensaje[data-error="true"]{color:#fca5a5}
-        .reporte-mensaje[data-error="false"]{color:#86efac}
-        .reporte-lista {display:grid;gap:12px;margin-top:14px}
-        .reporte-item {border:1px solid #2a364b;border-radius:12px;padding:16px;background:#0a1424}
-        .reporte-item-head {display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
-        .reporte-estado {display:inline-flex;padding:5px 9px;border-radius:99px;background:#283248;color:#e2e8f0;font-size:12px}
-        .reporte-estado[data-estado="pendiente"]{background:#473314;color:#fde68a}
-        .reporte-estado[data-estado="validado"]{background:#16392f;color:#a7f3d0}
-        .reporte-estado[data-estado="rechazado"]{background:#45232c;color:#fecaca}
-        .reporte-item p {line-height:1.5;color:#d5dee9;overflow-wrap:anywhere;margin-top:8px;font-size:14px}
-        .reporte-fotos {display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-        .reporte-fotos img {width:120px;height:90px;object-fit:cover;border-radius:8px}
-        .reporte-paginacion {display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:14px}
-        @media(max-width:850px){.reporte-grid{grid-template-columns:1fr}.reporte-card{padding:16px}.reporte-map{height:260px}.reporte-input-row{grid-template-columns:1fr 1fr}}
-
+        /* Los estilos del módulo de reportes están en reports.css */
     </style>
     <link rel="stylesheet" href="reports.css?v=2">
 </head>
