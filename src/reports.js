@@ -243,4 +243,4 @@ function mountReportRoutes(app, pool, verificarToken) {
   });
 }
 
-module.exports = { MAX_FOTOS, MAX_ARCHIVO, leerCoordenada, validarReporte, mountReportRoutes };
+module.exports = { MAX_FOTOS, MAX_ARCHIVO, leerCoordenada, validarReporte, convertirFotografias, mountReportRoutes };
