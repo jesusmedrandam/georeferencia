@@ -81,7 +81,7 @@ async function verificarSesionActiva() {
 function showNotification(message, type = 'error') {
     const alertDiv = document.getElementById('globalAlert');
     alertDiv.className = `custom-alert alert-${type}`;
-    alertDiv.innerHTML = `<i class="fa-solid ${type === 'error' ? 'fa-circle-xmark' : 'fa-circle-check'}"></i> ${message}`;
+    alertDiv.textContent = message;
     alertDiv.classList.remove('hidden');
 }
 
@@ -150,7 +150,7 @@ async function handleLogin(e) {
         } else {
             // DETECCIÓN DE CUENTA EXISTENTE PERO NO VERIFICADA:
             // Tu backend responde "Usuario no encontrado o no verificado." ante cuentas inactivas.
-            if (data.mensaje && data.mensaje.toLowerCase().includes('verificado')) {
+            if (data.mensaje && /verific/i.test(data.mensaje)) {
                 emailEnVerificacion = email; // Capturamos el correo usado para los reenvíos
                 switchTab('verify');
                 showNotification('Tu cuenta existe pero aún no está verificada. Por favor introduce tu código de activación.', 'error');
@@ -171,7 +171,7 @@ async function handleResendCode() {
         return;
     }
     try {
-        const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
+        const res = await fetch(`${API_URL}/api/auth/resend-verification`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: emailEnVerificacion })
@@ -226,6 +226,7 @@ function cargarDashboard() {
     document.getElementById('profNombre').value = usuarioActual.nombre;
     document.getElementById('profApellido').value = usuarioActual.apellido;
     document.getElementById('profTelefono').value = usuarioActual.telefono || '';
+    cargarInstituciones().catch(error => mostrarMensajeInstitucional(error.message));
 }
 
 async function saveProfile() {
@@ -251,6 +252,7 @@ async function saveProfile() {
         });
         const data = await res.json();
         if (res.ok) {
+            if (data.token) localStorage.setItem('token', data.token);
             usuarioActual = data.usuario;
             cargarDashboard();
             document.getElementById('profileDropdown').classList.add('hidden');
