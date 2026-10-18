@@ -95,7 +95,7 @@ app.get('/api/auth/me', verificarToken, async (req, res) => {
         const usuario = result.rows[0];
         let fotoBase64 = null;
         if (usuario.foto_perfil) {
-            fotoBase64 = `data:image/jpeg;base64,${usuario.foto_perfil.toString('base64')}`;
+            fotoBase64 = `data:${usuario.foto_perfil_mime || 'image/jpeg'};base64,${usuario.foto_perfil.toString('base64')}`;
         }
 
         return res.json({
@@ -210,7 +210,7 @@ app.post('/api/auth/login', async (req, res) => {
         await pool.query('UPDATE usuarios SET intentos_login = 0, bloqueado_hasta = NULL WHERE id = $1', [usuario.id]);
         const token = jwt.sign({ id: usuario.id, v: usuario.password_version }, JWT_SECRET, { expiresIn: '7d' });
         const fotoBase64 = usuario.foto_perfil
-            ? 'data:image/jpeg;base64,' + usuario.foto_perfil.toString('base64') : null;
+            ? 'data:' + (usuario.foto_perfil_mime || 'image/jpeg') + ';base64,' + usuario.foto_perfil.toString('base64') : null;
         const instituciones = await getUserAccess(pool, usuario.id);
         res.json({
             token,
@@ -276,7 +276,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
 // 6. ACTUALIZAR PERFIL (CON VALIDACIÓN DE CONTRASEÑA ACTUAL Y FECHA DE NACIMIENTO)
 app.put('/api/usuario/perfil', verificarToken, upload.single('foto_perfil'), async (req, res) => {
     const { nombre, apellido, telefono, fecha_nacimiento, passwordActual, passwordNueva } = req.body;
-    if (!nombre?.trim() || !apellido?.trim() || nombre.length > 100 || apellido.length > 100 ||
+    if (typeof nombre !== 'string' || !nombre.trim() || typeof apellido !== 'string' || !apellido.trim() || nombre.length > 100 || apellido.length > 100 ||
         (telefono && telefono.length > 20) || (passwordNueva && (passwordNueva.length < 8 || passwordNueva.length > 72)) ||
         (!!passwordActual !== !!passwordNueva)) {
         return res.status(400).json({ mensaje: 'Datos inválidos. Para cambiar la contraseña indica la actual y una nueva de al menos 8 caracteres.' });
@@ -305,17 +305,19 @@ app.put('/api/usuario/perfil', verificarToken, upload.single('foto_perfil'), asy
 
         // 3. Preparar la imagen si fue subida
         let fotoFinal = usuarioDb.foto_perfil;
+        let fotoMimeFinal = usuarioDb.foto_perfil_mime || 'image/jpeg';
         if (req.file) {
             fotoFinal = req.file.buffer;
+            fotoMimeFinal = req.file.mimetype;
         }
 
         // 4. Ejecutar actualización unificada en PostgreSQL
         await pool.query(
             `UPDATE usuarios 
              SET nombre = $1, apellido = $2, telefono = $3, fecha_nacimiento = $4, password = $5, foto_perfil = $6,
-                 password_version = password_version + $7
-             WHERE id = $8`,
-            [nombre.trim(), apellido.trim(), telefono || null, fecha_nacimiento || usuarioDb.fecha_nacimiento, passwordFinal, fotoFinal, passwordNueva ? 1 : 0, req.usuarioId]
+                 foto_perfil_mime = $7, password_version = password_version + $8
+             WHERE id = $9`,
+            [nombre.trim(), apellido.trim(), telefono || null, fecha_nacimiento || usuarioDb.fecha_nacimiento, passwordFinal, fotoFinal, fotoMimeFinal, passwordNueva ? 1 : 0, req.usuarioId]
         );
 
         // 5. Obtener los nuevos datos actualizados para responderle al frontend
@@ -324,7 +326,7 @@ app.put('/api/usuario/perfil', verificarToken, upload.single('foto_perfil'), asy
         
         let fotoBase64 = null;
         if (user.foto_perfil) {
-            fotoBase64 = `data:image/jpeg;base64,${user.foto_perfil.toString('base64')}`;
+            fotoBase64 = `data:${user.foto_perfil_mime || 'image/jpeg'};base64,${user.foto_perfil.toString('base64')}`;
         }
 
         return res.json({
