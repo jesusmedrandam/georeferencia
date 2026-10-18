@@ -156,11 +156,11 @@ function mountInstitutionRoutes(app, pool, verificarToken) {
       const { rows } = await pool.query(
         `INSERT INTO institucion_usuarios (institucion_id, usuario_id, rol, activo)
          VALUES ($1, $2, $3, TRUE)
-         ON CONFLICT (institucion_id, usuario_id)
-         DO UPDATE SET rol = EXCLUDED.rol, activo = TRUE
+         ON CONFLICT (institucion_id, usuario_id) DO NOTHING
          RETURNING institucion_id, usuario_id, rol, activo`,
         [req.institucionId, usuario.rows[0].id, rol]
       );
+      if (!rows.length) return res.status(409).json({ mensaje: 'Esta persona ya pertenece a la institución. Edita su rol o estado desde la lista de miembros.' });
       res.status(201).json({ miembro: rows[0] });
     } catch (error) {
       console.error('Error al agregar miembro:', error);
