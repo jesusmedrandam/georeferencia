@@ -6,6 +6,9 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const multer = require('multer'); 
 require('dotenv').config();
+const { initializeDatabase } = require('./src/schema');
+const { getUserAccess, mountInstitutionRoutes } = require('./src/institutions');
+const { crearCodigo, verificarCodigo, consumirCodigo } = require('./src/auth-codes');
 
 const app = express();
 app.use(express.json());
@@ -23,7 +26,10 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-const JWT_SECRET = process.env.JWT_SECRET || 'mi_clave_secreta_geoalerta';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+    throw new Error('Configura JWT_SECRET con al menos 32 caracteres en las variables de entorno.');
+}
 
 // === FUNCIÓN DE ENVÍO POR API DE BREVO ===
 async function enviarCorreo(destinatario, asunto, mensaje) {
@@ -53,42 +59,30 @@ async function enviarCorreo(destinatario, asunto, mensaje) {
     }
 }
 
-// Inicializar tabla
-const initDB = async () => {
-    try {
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS usuarios (
-                id SERIAL PRIMARY KEY,
-                nombre VARCHAR(100),
-                apellido VARCHAR(100),
-                email VARCHAR(100) UNIQUE,
-                fecha_nacimiento DATE,
-                password VARCHAR(255),
-                verificado BOOLEAN DEFAULT FALSE,
-                codigo_verificacion VARCHAR(6),
-                telefono VARCHAR(20),
-                foto_perfil BYTEA
-            );
-        `);
-        await pool.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS foto_perfil BYTEA;`);
-        console.log("Base de datos sincronizada correctamente.");
-    } catch (err) {
-        console.error("Error al inicializar DB:", err);
-    }
-};
-initDB();
-
-// Middleware de autenticación
-const verificarToken = (req, res, next) => {
-    const token = req.headers['authorization']?.split(' ')[1];
-    if (!token) return res.status(403).json({ mensaje: 'Acceso no authorized.' });
-
+// Cada solicitud protegida valida en la base de datos el estado y versión de sesión.
+const verificarToken = async (req, res, next) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ mensaje: 'Necesitas iniciar sesión.' });
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        req.usuarioId = decoded.id;
+        const { rows } = await pool.query(
+            'SELECT id, activo, verificado, es_superadmin, password_version FROM usuarios WHERE id = $1',
+            [decoded.id]
+        );
+        const usuario = rows[0];
+        if (!usuario || !usuario.activo || !usuario.verificado ||
+            Number(decoded.v ?? 0) !== usuario.password_version) {
+            return res.status(401).json({ mensaje: 'Tu sesión ya no es válida.' });
+        }
+        req.usuarioId = usuario.id;
+        req.usuario = usuario;
         next();
     } catch (err) {
-        return res.status(401).json({ mensaje: 'Sesión expirada.' });
+        if (err.name === 'TokenExpiredError' || err.name === 'JsonWebTokenError') {
+            return res.status(401).json({ mensaje: 'Sesión expirada o inválida.' });
+        }
+        console.error('Error al verificar sesión:', err);
+        return res.status(500).json({ mensaje: 'No se pudo verificar la sesión.' });
     }
 };
 
@@ -119,108 +113,160 @@ app.get('/api/auth/me', verificarToken, async (req, res) => {
     }
 });
 
-// 1. REGISTRO
+// 1. REGISTRO: toda cuenta nueva comienza como ciudadano.
 app.post('/api/auth/register', async (req, res) => {
-    const { nombre, apellido, email, fecha_nacimiento, password } = req.body;
+    const { nombre, apellido, fecha_nacimiento, password } = req.body;
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    if (typeof nombre !== 'string' || !nombre.trim() || nombre.length > 100 ||
+        typeof apellido !== 'string' || !apellido.trim() || apellido.length > 100 ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 100 ||
+        typeof password !== 'string' || password.length < 8 || password.length > 72 ||
+        typeof fecha_nacimiento !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(fecha_nacimiento)) {
+        return res.status(400).json({ mensaje: 'Revisa tus datos. La contraseña debe tener al menos 8 caracteres.' });
+    }
     try {
-        const userCheck = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-        if (userCheck.rows.length > 0) return res.status(400).json({ mensaje: 'El correo ya está registrado.' });
-
+        const existente = await pool.query('SELECT id FROM usuarios WHERE LOWER(email) = $1', [email]);
+        if (existente.rowCount) return res.status(409).json({ mensaje: 'El correo ya está registrado.' });
         const hashedPassword = await bcrypt.hash(password, 10);
-        const codigo = Math.floor(100000 + Math.random() * 900000).toString();
-
-        await pool.query(
-            'INSERT INTO usuarios (nombre, apellido, email, fecha_nacimiento, password, codigo_verificacion) VALUES ($1, $2, $3, $4, $5, $6)',
-            [nombre, apellido, email, fecha_nacimiento, hashedPassword, codigo]
+        const { rows } = await pool.query(
+            'INSERT INTO usuarios (nombre, apellido, email, fecha_nacimiento, password) VALUES ($1, $2, $3, $4, $5) RETURNING id, email',
+            [nombre.trim(), apellido.trim(), email, fecha_nacimiento, hashedPassword]
         );
-
-        enviarCorreo(email, 'Código de Verificación - GeoAlerta', `Tu código de verificación es: ${codigo}`);
+        const codigo = await crearCodigo(pool, rows[0], 'registro');
+        const enviado = await enviarCorreo(email, 'Código de Verificación - GeoAlerta',
+            'Tu código de verificación es: ' + codigo + '. Caduca en 15 minutos.');
+        if (!enviado) return res.status(503).json({ mensaje: 'Cuenta creada, pero no se pudo enviar el código. Solicita un reenvío.' });
         return res.status(201).json({ mensaje: 'Usuario creado. Introduce el código enviado a tu correo.' });
-    } catch (err) {
-        console.error("Error en registro:", err);
-        return res.status(500).json({ mensaje: 'Error interno en el servidor al registrar.' });
+    } catch (error) {
+        console.error('Error en registro:', error);
+        if (error.code === '23505') return res.status(409).json({ mensaje: 'El correo ya está registrado.' });
+        return res.status(500).json({ mensaje: 'Error interno al registrar.' });
     }
 });
 
 // 2. VERIFICACIÓN DE CÓDIGO
 app.post('/api/auth/verify', async (req, res) => {
-    const { email, codigo } = req.body;
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
     try {
-        const result = await pool.query('SELECT * FROM usuarios WHERE email = $1 AND codigo_verificacion = $2', [email, codigo]);
-        if (result.rows.length === 0) return res.status(400).json({ mensaje: 'El código introducido es incorrecto.' });
-
-        await pool.query('UPDATE usuarios SET verificado = true, codigo_verificacion = NULL WHERE email = $1', [email]);
+        const { rows } = await pool.query('SELECT * FROM usuarios WHERE LOWER(email) = $1', [email]);
+        const usuario = rows[0];
+        if (!usuario || usuario.verificado || !usuario.activo ||
+            !(await verificarCodigo(pool, usuario, 'registro', req.body.codigo))) {
+            return res.status(400).json({ mensaje: 'Código inválido, caducado o sin intentos restantes.' });
+        }
+        await pool.query('UPDATE usuarios SET verificado = TRUE WHERE id = $1', [usuario.id]);
+        await consumirCodigo(pool, usuario.id);
         return res.json({ mensaje: '¡Cuenta verificada con éxito! Ya puedes iniciar sesión.' });
-    } catch (err) {
+    } catch (error) {
+        console.error('Error al verificar:', error);
         return res.status(500).json({ mensaje: 'Error al verificar el código.' });
     }
 });
 
-// 3. INICIO DE SESIÓN - ACTUALIZADO: Retorna fecha_nacimiento
-app.post('/api/auth/login', async (req, res) => {
-    const { email, password } = req.body;
+app.post('/api/auth/resend-verification', async (req, res) => {
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
     try {
-        const result = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-        if (result.rows.length === 0) return res.status(400).json({ mensaje: 'Usuario no encontrado.' });
-
-        const usuario = result.rows[0];
-        if (!usuario.verificado) return res.status(401).json({ mensaje: 'Por favor, verifica tu cuenta primero.' });
-
-        const validPassword = await bcrypt.compare(password, usuario.password);
-        if (!validPassword) return res.status(400).json({ mensaje: 'Contraseña incorrecta.' });
-
-        const token = jwt.sign({ id: usuario.id }, JWT_SECRET, { expiresIn: '7d' });
-        
-        let fotoBase64 = null;
-        if (usuario.foto_perfil) {
-            fotoBase64 = `data:image/jpeg;base64,${usuario.foto_perfil.toString('base64')}`;
+        const { rows } = await pool.query('SELECT id, email, verificado, activo FROM usuarios WHERE LOWER(email) = $1', [email]);
+        const usuario = rows[0];
+        if (!usuario || usuario.verificado || !usuario.activo) {
+            return res.json({ mensaje: 'Si la cuenta necesita verificación, recibirás un correo.' });
         }
+        const codigo = await crearCodigo(pool, usuario, 'registro');
+        const enviado = await enviarCorreo(usuario.email, 'Verificación de GeoAlerta',
+            'Tu código es: ' + codigo + '. Caduca en 15 minutos.');
+        if (!enviado) return res.status(503).json({ mensaje: 'No se pudo enviar el correo. Intenta más tarde.' });
+        res.json({ mensaje: 'Si la cuenta necesita verificación, recibirás un correo.' });
+    } catch (error) {
+        if (error.status === 429) return res.status(429).json({ mensaje: error.message });
+        console.error('Error de reenvío:', error);
+        res.status(500).json({ mensaje: 'Error al solicitar otro código.' });
+    }
+});
 
-        return res.json({
+// 3. INICIO DE SESIÓN
+app.post('/api/auth/login', async (req, res) => {
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    const password = req.body.password;
+    if (!email || typeof password !== 'string') return res.status(400).json({ mensaje: 'Credenciales inválidas.' });
+    try {
+        const { rows } = await pool.query('SELECT * FROM usuarios WHERE LOWER(email) = $1', [email]);
+        const usuario = rows[0];
+        if (!usuario) return res.status(401).json({ mensaje: 'Credenciales incorrectas.' });
+        if (!usuario.activo) return res.status(403).json({ mensaje: 'La cuenta está desactivada.' });
+        if (!usuario.verificado) return res.status(403).json({ mensaje: 'Por favor, verifica tu cuenta primero.' });
+        if (usuario.bloqueado_hasta && new Date(usuario.bloqueado_hasta) > new Date()) {
+            return res.status(429).json({ mensaje: 'Demasiados intentos. Prueba dentro de 5 minutos.' });
+        }
+        if (!(await bcrypt.compare(password, usuario.password))) {
+            await pool.query(
+                "UPDATE usuarios SET intentos_login = CASE WHEN intentos_login >= 4 THEN 0 ELSE intentos_login + 1 END, bloqueado_hasta = CASE WHEN intentos_login >= 4 THEN NOW() + INTERVAL '5 minutes' ELSE NULL END WHERE id = $1",
+                [usuario.id]
+            );
+            return res.status(401).json({ mensaje: 'Credenciales incorrectas.' });
+        }
+        await pool.query('UPDATE usuarios SET intentos_login = 0, bloqueado_hasta = NULL WHERE id = $1', [usuario.id]);
+        const token = jwt.sign({ id: usuario.id, v: usuario.password_version }, JWT_SECRET, { expiresIn: '7d' });
+        const fotoBase64 = usuario.foto_perfil
+            ? 'data:image/jpeg;base64,' + usuario.foto_perfil.toString('base64') : null;
+        const instituciones = await getUserAccess(pool, usuario.id);
+        res.json({
             token,
             usuario: {
-                nombre: usuario.nombre,
-                apellido: usuario.apellido,
-                email: usuario.email,
-                telefono: usuario.telefono,
-                fecha_nacimiento: usuario.fecha_nacimiento, // Agregado
-                foto_url: fotoBase64
+                nombre: usuario.nombre, apellido: usuario.apellido, email: usuario.email,
+                telefono: usuario.telefono, fecha_nacimiento: usuario.fecha_nacimiento,
+                foto_url: fotoBase64, rol_global: usuario.es_superadmin ? 'superadministrador' : 'ciudadano',
+                instituciones
             }
         });
-    } catch (err) {
-        return res.status(500).json({ mensaje: 'Error en el inicio de sesión.' });
+    } catch (error) {
+        console.error('Error en login:', error);
+        res.status(500).json({ mensaje: 'Error en el inicio de sesión.' });
     }
 });
 
 // 4. SOLICITAR RECUPERACIÓN DE CONTRASEÑA
 app.post('/api/auth/forgot-password', async (req, res) => {
-    const { email } = req.body;
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    if (!email) return res.status(400).json({ mensaje: 'Indica un correo electrónico.' });
     try {
-        const result = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-        if (result.rows.length === 0) return res.status(400).json({ mensaje: 'Este correo electrónico no está registrado.' });
-
-        const codigo = Math.floor(100000 + Math.random() * 900000).toString();
-        await pool.query('UPDATE usuarios SET codigo_verificacion = $1 WHERE email = $2', [codigo, email]);
-
-        enviarCorreo(email, 'Restablecer Contraseña - GeoAlerta', `Tu código para cambiar la contraseña es: ${codigo}`);
-        return res.json({ mensaje: 'Código de recuperación generado.' });
-    } catch (err) {
-        return res.status(500).json({ mensaje: 'Error en el servidor al procesar la solicitud.' });
+        const { rows } = await pool.query('SELECT id, email, activo FROM usuarios WHERE LOWER(email) = $1', [email]);
+        if (rows[0]?.activo) {
+            const codigo = await crearCodigo(pool, rows[0], 'recuperacion');
+            const enviado = await enviarCorreo(rows[0].email, 'Restablecer Contraseña - GeoAlerta',
+                'Tu código de recuperación es: ' + codigo + '. Caduca en 15 minutos.');
+            if (!enviado) return res.status(503).json({ mensaje: 'No se pudo enviar el correo. Intenta más tarde.' });
+        }
+        res.json({ mensaje: 'Si el correo está registrado, recibirás un código de recuperación.' });
+    } catch (error) {
+        if (error.status === 429) return res.status(429).json({ mensaje: error.message });
+        console.error('Error al recuperar contraseña:', error);
+        res.status(500).json({ mensaje: 'Error al procesar la solicitud.' });
     }
 });
 
 // 5. RESTABLECER CONTRASEÑA FINAL
 app.post('/api/auth/reset-password', async (req, res) => {
-    const { email, codigo, nuevaPassword } = req.body;
+    const { codigo, nuevaPassword } = req.body;
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    if (typeof nuevaPassword !== 'string' || nuevaPassword.length < 8 || nuevaPassword.length > 72) {
+        return res.status(400).json({ mensaje: 'La contraseña debe tener entre 8 y 72 caracteres.' });
+    }
     try {
-        const result = await pool.query('SELECT * FROM usuarios WHERE email = $1 AND codigo_verificacion = $2', [email, codigo]);
-        if (result.rows.length === 0) return res.status(400).json({ mensaje: 'Código inválido o vencido.' });
-
-        const hashedNewPassword = await bcrypt.hash(nuevaPassword, 10);
-        await pool.query('UPDATE usuarios SET password = $1, codigo_verificacion = NULL WHERE email = $2', [hashedNewPassword, email]);
-        return res.json({ mensaje: 'Tu contraseña ha sido actualizada correctamente.' });
-    } catch (err) {
-        return res.status(500).json({ mensaje: 'Error al cambiar la contraseña.' });
+        const { rows } = await pool.query('SELECT * FROM usuarios WHERE LOWER(email) = $1', [email]);
+        const usuario = rows[0];
+        if (!usuario || !usuario.activo || !(await verificarCodigo(pool, usuario, 'recuperacion', codigo))) {
+            return res.status(400).json({ mensaje: 'Código inválido, caducado o sin intentos restantes.' });
+        }
+        const hash = await bcrypt.hash(nuevaPassword, 10);
+        await pool.query(
+            'UPDATE usuarios SET password = $1, password_version = password_version + 1 WHERE id = $2',
+            [hash, usuario.id]
+        );
+        await consumirCodigo(pool, usuario.id);
+        res.json({ mensaje: 'Tu contraseña ha sido actualizada correctamente.' });
+    } catch (error) {
+        console.error('Error al restablecer contraseña:', error);
+        res.status(500).json({ mensaje: 'Error al cambiar la contraseña.' });
     }
 });
 
