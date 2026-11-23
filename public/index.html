@@ -135,6 +135,7 @@
     </style>
     <link rel="stylesheet" href="reports.css?v=2">
     <link rel="stylesheet" href="dashboard.css?v=1">
+    <link rel="stylesheet" href="operations.css?v=1">
 </head>
 <body>
 
@@ -282,6 +283,15 @@
                     <button type="button" class="nav-item" data-view="instituciones">
                         <i class="fa-solid fa-building" aria-hidden="true"></i><span>Instituciones</span>
                     </button>
+                    <button type="button" class="nav-item" id="navTracking" data-view="seguimiento">
+                        <i class="fa-solid fa-route" aria-hidden="true"></i><span>Seguimiento</span>
+                    </button>
+                    <button type="button" class="nav-item hidden" id="navAuthorityInbox" data-view="autoridad">
+                        <i class="fa-solid fa-inbox" aria-hidden="true"></i><span>Bandeja institucional</span>
+                    </button>
+                    <button type="button" class="nav-item hidden" id="navDispatch" data-view="despacho">
+                        <i class="fa-solid fa-share-nodes" aria-hidden="true"></i><span>Despacho</span>
+                    </button>
                 </nav>
                 <div class="sidebar-footer">
                     <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
@@ -330,7 +340,7 @@
                     <span class="dashboard-notice-icon"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></span>
                     <div>
                         <strong>GeoAlerta está en desarrollo</strong>
-                        <p>Actualmente puedes registrar reportes y consultar su estado. La revisión institucional y las alertas públicas todavía no están habilitadas.</p>
+                        <p>Puedes registrar reportes, dar seguimiento y consultar las actuaciones de las instituciones asignadas. Las alertas públicas y la integración oficial con servicios de emergencia todavía no están habilitadas.</p>
                     </div>
                 </div>
                 <div class="dashboard-launch-grid">
@@ -351,6 +361,24 @@
                         <span class="dashboard-launch-title">Instituciones</span>
                         <span class="dashboard-launch-description">Revisa tus vinculaciones y las herramientas disponibles según tu rol.</span>
                         <span class="dashboard-launch-link">Ver instituciones <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+                    </button>
+                    <button type="button" class="dashboard-launch-card dashboard-launch-card--reports" data-go-view="seguimiento">
+                        <span class="dashboard-launch-icon"><i class="fa-solid fa-route" aria-hidden="true"></i></span>
+                        <span class="dashboard-launch-title">Seguimiento</span>
+                        <span class="dashboard-launch-description">Consulta las instituciones asignadas y las actualizaciones de tus reportes.</span>
+                        <span class="dashboard-launch-link">Ver seguimiento <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+                    </button>
+                    <button type="button" class="dashboard-launch-card dashboard-launch-card--institutions hidden" id="homeAuthorityCard" data-go-view="autoridad">
+                        <span class="dashboard-launch-icon"><i class="fa-solid fa-inbox" aria-hidden="true"></i></span>
+                        <span class="dashboard-launch-title">Bandeja institucional</span>
+                        <span class="dashboard-launch-description">Revisa reportes enviados a tus instituciones y actualiza su atención.</span>
+                        <span class="dashboard-launch-link">Abrir bandeja <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+                    </button>
+                    <button type="button" class="dashboard-launch-card dashboard-launch-card--alert hidden" id="homeDispatchCard" data-go-view="despacho">
+                        <span class="dashboard-launch-icon"><i class="fa-solid fa-share-nodes" aria-hidden="true"></i></span>
+                        <span class="dashboard-launch-title">Despacho de reportes</span>
+                        <span class="dashboard-launch-description">Configura la distribución automática y asigna reportes sin institución.</span>
+                        <span class="dashboard-launch-link">Administrar despacho <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
                     </button>
                     <button type="button" class="dashboard-launch-card dashboard-launch-card--profile" id="homeProfileButton">
                         <span class="dashboard-launch-icon"><i class="fa-solid fa-user-gear" aria-hidden="true"></i></span>
@@ -536,7 +564,60 @@
                     </div>
                 </div>
             </section>
-                </main>
+
+            <section id="trackingArea" class="dashboard-view hidden" aria-label="Seguimiento de reportes">
+                <div class="operations-heading">
+                    <div><h2>Seguimiento de mis reportes</h2><p>Consulta qué institución recibió cada reporte y las actuaciones registradas.</p></div>
+                    <button type="button" class="operations-button" id="refreshCitizenTracking"><i class="fa-solid fa-rotate"></i> Actualizar</button>
+                </div>
+                <div id="listaSeguimientoCiudadano" class="operations-list" aria-live="polite"></div>
+            </section>
+
+            <section id="authorityArea" class="dashboard-view hidden" aria-label="Bandeja institucional">
+                <div class="operations-heading">
+                    <div><h2>Bandeja institucional</h2><p>Reportes asignados a las instituciones en las que participas.</p></div>
+                    <button type="button" class="operations-button" id="refreshAuthorityInbox"><i class="fa-solid fa-rotate"></i> Actualizar</button>
+                </div>
+                <div class="operations-toolbar">
+                    <label for="operatingInstitutionSelect">Institución</label>
+                    <select id="operatingInstitutionSelect"></select>
+                    <label for="authorityStatusFilter">Estado</label>
+                    <select id="authorityStatusFilter">
+                        <option value="">Todos</option><option value="recibido">Recibidos</option>
+                        <option value="en_revision">En revisión</option><option value="validado">Validados</option>
+                        <option value="en_atencion">En atención</option><option value="controlada">Controlados</option>
+                        <option value="cerrada">Cerrados</option><option value="informacion_solicitada">Información solicitada</option>
+                        <option value="rechazado">Rechazados</option>
+                    </select>
+                </div>
+                <div id="listaBandejaInstitucional" class="operations-list" aria-live="polite"></div>
+            </section>
+
+            <section id="dispatchArea" class="dashboard-view hidden" aria-label="Despacho de reportes">
+                <div class="operations-heading">
+                    <div><h2>Despacho y distribución</h2><p>Define qué instituciones reciben cada categoría. No se asigna por ubicación porque las instituciones aún no tienen cobertura territorial configurada.</p></div>
+                    <button type="button" class="operations-button" id="refreshDispatch"><i class="fa-solid fa-rotate"></i> Actualizar</button>
+                </div>
+                <div class="operations-panel">
+                    <h3>Distribución automática por categoría</h3>
+                    <p>Al guardar una regla, los nuevos reportes de esa categoría se enviarán a las instituciones seleccionadas. Los reportes anteriores sin asignación aparecerán en la cola inferior.</p>
+                    <div class="operations-toolbar">
+                        <label for="distributionTypeSelect">Categoría de emergencia</label>
+                        <select id="distributionTypeSelect"></select>
+                    </div>
+                    <div id="distributionInstitutionChecks" class="operations-check-grid"></div>
+                    <div class="operations-actions">
+                        <button type="button" class="operations-button operations-button--primary" id="saveDistribution">Guardar distribución</button>
+                        <span id="distributionMessage" class="operations-message" role="status"></span>
+                    </div>
+                </div>
+                <div class="operations-panel">
+                    <div class="operations-heading"><div><h3>Reportes pendientes de asignación</h3><p>Reportes que no tienen una institución responsable configurada.</p></div></div>
+                    <div id="listaReportesSinAsignar" class="operations-list" aria-live="polite"></div>
+                </div>
+            </section>
+
+            </main>
             </div>
         </div>
     </div>
@@ -544,5 +625,6 @@
     <script src="institutions.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="reports.js"></script>
+    <script src="operations.js?v=1"></script>
 </body>
 </html>

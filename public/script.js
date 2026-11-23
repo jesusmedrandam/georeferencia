@@ -251,9 +251,30 @@ function cambiarVistaDashboard(vista) {
             id: 'institutionArea',
             titulo: 'Instituciones',
             descripcion: 'Consulta tus vinculaciones y herramientas institucionales'
+        },
+        seguimiento: {
+            id: 'trackingArea',
+            titulo: 'Seguimiento',
+            descripcion: 'Consulta las instituciones y actuaciones de tus reportes'
+        },
+        autoridad: {
+            id: 'authorityArea',
+            titulo: 'Bandeja institucional',
+            descripcion: 'Revisa y actualiza los reportes asignados a tu institución'
+        },
+        despacho: {
+            id: 'dispatchArea',
+            titulo: 'Despacho de reportes',
+            descripcion: 'Configura la distribución y asigna reportes pendientes'
         }
     };
 
+    if (vista === 'autoridad' && document.getElementById('navAuthorityInbox').classList.contains('hidden')) {
+        vista = 'inicio';
+    }
+    if (vista === 'despacho' && document.getElementById('navDispatch').classList.contains('hidden')) {
+        vista = 'inicio';
+    }
     const seleccion = configuracion[vista] || configuracion.inicio;
     document.querySelectorAll('.dashboard-view').forEach(panel => panel.classList.add('hidden'));
     const panelActivo = document.getElementById(seleccion.id);
@@ -279,6 +300,12 @@ function cambiarVistaDashboard(vista) {
         activarMapaReportes();
     } else if (vista === 'reportes' && typeof refrescarReportes === 'function') {
         refrescarReportes().catch(error => mensajeReporte(error.message, true));
+    } else if (vista === 'seguimiento' && typeof cargarSeguimientoCiudadano === 'function') {
+        cargarSeguimientoCiudadano();
+    } else if (vista === 'autoridad' && typeof cargarBandejaInstitucional === 'function') {
+        cargarBandejaInstitucional();
+    } else if (vista === 'despacho' && typeof cargarPanelDespacho === 'function') {
+        cargarPanelDespacho();
     }
 }
 
@@ -299,7 +326,11 @@ function cargarDashboard() {
     document.getElementById('profApellido').value = usuarioActual.apellido;
     document.getElementById('profTelefono').value = usuarioActual.telefono || '';
     cambiarVistaDashboard('inicio');
-    cargarInstituciones().catch(error => mostrarMensajeInstitucional(error.message));
+    cargarInstituciones()
+        .then(() => {
+            if (typeof prepararModulosOperativos === 'function') prepararModulosOperativos();
+        })
+        .catch(error => mostrarMensajeInstitucional(error.message));
     cargarReportes().catch(error => mensajeReporte(error.message, true));
 }
 
