@@ -234,6 +234,132 @@ function liberarFotos() {
   fotosTemporales = [];
 }
 
+function resolverEstadoVisibleReporte(reporte) {
+  const instituciones = Array.isArray(reporte.instituciones) ? reporte.instituciones : [];
+  const estadosInstitucionales = instituciones.map(item => item.estado).filter(Boolean);
+  const estadoEmergencia = reporte.estado_emergencia;
+
+  if (reporte.estado === 'rechazado') {
+    return {
+      codigo: 'rechazado',
+      etiqueta: 'Rechazado',
+      detalle: 'El reporte fue rechazado. Puedes consultar el historial para conocer la observación registrada.'
+    };
+  }
+  if (reporte.estado === 'informacion_solicitada' ||
+      estadosInstitucionales.includes('informacion_solicitada')) {
+    return {
+      codigo: 'informacion_solicitada',
+      etiqueta: 'Información solicitada',
+      detalle: 'La institución necesita información adicional para continuar con la revisión.'
+    };
+  }
+
+  const estadosEmergencia = {
+    validada: {
+      codigo: 'validado',
+      etiqueta: 'Validado · pendiente de atención',
+      detalle: 'La institución confirmó el reporte y asignó una prioridad. La atención todavía no figura como iniciada.'
+    },
+    en_atencion: {
+      codigo: 'en_atencion',
+      etiqueta: 'En seguimiento',
+      detalle: 'La institución ya inició la atención y está dando seguimiento a la emergencia.'
+    },
+    controlada: {
+      codigo: 'controlada',
+      etiqueta: 'Emergencia controlada',
+      detalle: 'La institución informó que la emergencia está controlada. El caso aún puede requerir cierre.'
+    },
+    cerrada: {
+      codigo: 'cerrada',
+      etiqueta: 'Atendida y cerrada',
+      detalle: 'La institución registró la atención y cerró el caso.'
+    }
+  };
+  if (estadoEmergencia && estadosEmergencia[estadoEmergencia]) {
+    return estadosEmergencia[estadoEmergencia];
+  }
+
+  if (estadosInstitucionales.includes('en_atencion')) {
+    return {
+      codigo: 'en_atencion',
+      etiqueta: 'En seguimiento',
+      detalle: 'Al menos una institución ya inició la atención del reporte.'
+    };
+  }
+  if (estadosInstitucionales.includes('controlada')) {
+    return {
+      codigo: 'controlada',
+      etiqueta: 'Emergencia controlada',
+      detalle: 'Una institución informó que la emergencia está controlada.'
+    };
+  }
+  if (estadosInstitucionales.length &&
+      estadosInstitucionales.every(estado => estado === 'cerrada')) {
+    return {
+      codigo: 'cerrada',
+      etiqueta: 'Atendida y cerrada',
+      detalle: 'Todas las instituciones asignadas registraron el cierre del caso.'
+    };
+  }
+  if (estadosInstitucionales.includes('validado') || reporte.estado === 'validado') {
+    return {
+      codigo: 'validado',
+      etiqueta: 'Validado · pendiente de atención',
+      detalle: 'El reporte fue confirmado. La atención todavía no figura como iniciada.'
+    };
+  }
+  if (estadosInstitucionales.includes('en_revision')) {
+    return {
+      codigo: 'en_revision',
+      etiqueta: 'En revisión',
+      detalle: 'La institución recibió el reporte y está verificando la información.'
+    };
+  }
+  if (estadosInstitucionales.includes('recibido')) {
+    return {
+      codigo: 'recibido',
+      etiqueta: 'Recibido por institución',
+      detalle: 'El reporte fue enviado a la institución responsable y está pendiente de revisión.'
+    };
+  }
+  if (estadosInstitucionales.includes('derivado')) {
+    return {
+      codigo: 'derivado',
+      etiqueta: 'Derivado',
+      detalle: 'El reporte figura como derivado. Consulta el historial para ver las actuaciones registradas.'
+    };
+  }
+  if (instituciones.length) {
+    return {
+      codigo: 'pendiente',
+      etiqueta: 'Pendiente de revisión',
+      detalle: 'El reporte está asignado y espera una actualización de la institución.'
+    };
+  }
+  return {
+    codigo: 'pendiente_asignacion',
+    etiqueta: 'Pendiente de asignación',
+    detalle: 'Tu reporte fue registrado y todavía no se ha asignado a una institución responsable.'
+  };
+}
+
+function etiquetaEstadoInstitucion(estado) {
+  const etiquetas = {
+    recibido: 'Recibido',
+    en_revision: 'En revisión',
+    validado: 'Validado',
+    en_atencion: 'En atención',
+    controlada: 'Emergencia controlada',
+    cerrada: 'Atendida y cerrada',
+    informacion_solicitada: 'Información solicitada',
+    rechazado: 'Rechazado',
+    derivado: 'Derivado'
+  };
+  return etiquetas[estado] || estado || 'Sin actualización';
+}
+
 function mostrarListadoReportes(reportes) {
   liberarFotos();
   const lista = document.getElementById('listaReportes');
@@ -242,27 +368,58 @@ function mostrarListadoReportes(reportes) {
     lista.appendChild(texto('p', 'Todavía no has registrado reportes.', 'reporte-meta'));
     return;
   }
-  const etiquetas = {
-    pendiente: 'Pendiente de validación',
-    informacion_solicitada: 'Información solicitada',
-    validado: 'Validado',
-    rechazado: 'Rechazado'
-  };
+
   for (const reporte of reportes) {
     const item = document.createElement('article');
     item.className = 'reporte-item';
     const head = texto('div', '', 'reporte-item-head');
     const titulo = texto('strong', '#' + reporte.id + ' · ' + reporte.tipo);
-    const estado = texto('span', etiquetas[reporte.estado] || reporte.estado, 'reporte-estado');
-    estado.dataset.estado = reporte.estado;
+    const resumenEstado = resolverEstadoVisibleReporte(reporte);
+    const estado = texto('span', resumenEstado.etiqueta, 'reporte-estado');
+    estado.dataset.estado = resumenEstado.codigo;
     head.append(titulo, estado);
     item.append(head, texto('p', reporte.descripcion));
+    item.append(texto('p', resumenEstado.detalle, 'reporte-meta'));
+
+    if (reporte.prioridad) {
+      const prioridad = reporte.prioridad.charAt(0).toUpperCase() + reporte.prioridad.slice(1);
+      item.append(texto('p', 'Prioridad asignada: ' + prioridad, 'reporte-prioridad'));
+    }
+
     const fecha = new Date(reporte.creado_en);
     item.append(texto('p', 'Registrado: ' + (Number.isNaN(fecha.valueOf())
       ? 'Sin fecha' : fecha.toLocaleString('es-EC')), 'reporte-meta'));
     if (reporte.referencia_ubicacion) {
       item.append(texto('p', 'Referencia: ' + reporte.referencia_ubicacion, 'reporte-meta'));
     }
+
+    const instituciones = Array.isArray(reporte.instituciones) ? reporte.instituciones : [];
+    if (instituciones.length) {
+      const bloqueInstituciones = texto('div', '', 'reporte-instituciones');
+      bloqueInstituciones.appendChild(
+        texto('p', 'Instituciones responsables', 'reporte-meta reporte-instituciones-titulo')
+      );
+      for (const institucion of instituciones) {
+        const fila = texto('div', '', 'reporte-institucion-fila');
+        fila.appendChild(texto('span', institucion.institucion || 'Institución'));
+        const estadoInstitucion = texto(
+          'span',
+          etiquetaEstadoInstitucion(institucion.estado),
+          'reporte-institucion-estado'
+        );
+        estadoInstitucion.dataset.estado = institucion.estado || 'pendiente';
+        fila.appendChild(estadoInstitucion);
+        bloqueInstituciones.appendChild(fila);
+      }
+      item.appendChild(bloqueInstituciones);
+    } else if (resumenEstado.codigo === 'pendiente_asignacion') {
+      item.appendChild(texto(
+        'p',
+        'Aún no hay una institución responsable asignada.',
+        'reporte-meta'
+      ));
+    }
+
     const acciones = texto('div', '', 'reporte-map-actions');
     const ubicar = texto('button', 'Ubicar en mapa');
     ubicar.type = 'button';
