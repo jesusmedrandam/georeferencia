@@ -61,3 +61,15 @@ test('incluye los módulos de seguimiento, bandeja institucional y despacho', ()
   assert.match(html, /operations\.js\?v=1/);
   assert.match(html, /operations\.css\?v=1/);
 });
+
+test('mis reportes presenta el estado operativo y el avance de cada institución', () => {
+  assert.match(js, /function resolverEstadoVisibleReporte\(reporte\)/);
+  assert.match(js, /reporte\.estado_emergencia/);
+  assert.match(js, /reporte\.instituciones/);
+  assert.match(js, /En seguimiento/);
+  assert.match(js, /Emergencia controlada/);
+  assert.match(js, /Atendida y cerrada/);
+  assert.match(js, /Prioridad asignada:/);
+  assert.match(js, /Instituciones responsables/);
+  assert.match(js, /Pendiente de asignación/);
+});
