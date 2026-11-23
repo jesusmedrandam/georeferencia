@@ -197,3 +197,19 @@
   .operations-toolbar select { width: 100%; }
   .operations-actions > .operations-button { flex: 1 1 auto; }
 }
+
+.operations-note {
+  display: block;
+  width: 100%;
+  min-height: 55px;
+  margin-top: 13px;
+  padding: 10px 12px;
+  resize: vertical;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  background: var(--input-bg);
+  color: var(--text-main);
+  font: inherit;
+  font-size: 11px;
+}
+.operations-note:focus { outline: 1px solid #f87171; border-color: #f87171; }
