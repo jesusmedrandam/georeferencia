@@ -108,7 +108,7 @@ El sistema permite que cualquier cuenta verificada envíe un reporte de incident
 
 Un reporte se crea con estado **pendiente**. Su autor lo puede consultar en **Mis reportes**, incluidas sus fotografías, mediante endpoints autenticados que comprueban la propiedad del registro. No se publica públicamente como emergencia validada.
 
-La nueva tabla `emergencias` es distinta de `reportes`. El mapa de emergencias verificadas solo utiliza registros de `emergencias` y se mostrará **vacío al comienzo**, hasta que se implemente el panel de validación institucional. Este es el comportamiento correcto. Los puntos azules del mapa son únicamente reportes del usuario autenticado (en la página del historial visible). Los rojos representarán emergencias ya validadas.
+La nueva tabla `emergencias` es distinta de `reportes`. El mapa de emergencias verificadas solo utiliza registros de `emergencias`. Los reportes pendientes no se publican como emergencias confirmadas. Los puntos azules representan reportes del usuario autenticado y los rojos representan emergencias validadas.
 
 Los estados del reporte son `pendiente`, `informacion_solicitada`, `validado` y `rechazado`. Los estados de una emergencia validada son `validada`, `en_atencion`, `controlada` y `cerrada`. La fase 3 incorpora una bandeja institucional. Solo los miembros activos de una institución pueden consultar y gestionar los reportes asignados a esa institución; los permisos se comprueban en el backend.
 
@@ -164,7 +164,7 @@ Las nuevas tablas `tipo_emergencia_instituciones` y `reporte_asignaciones` se cr
 3. Comprueba el mensaje `pendiente` y el punto azul en **Mis reportes**.
 4. Adjunta una foto, comprueba que se muestra al pulsar `Ver fotografía(s)`.
 5. Inicia sesión con otro usuario y verifica que no puede consultar el reporte ni recuperar la foto del primer usuario.
-6. Comprueba que el mapa de emergencias verificadas está vacío hasta que se implemente la revisión institucional.
+6. Comprueba que el mapa solo muestra emergencias que una institución ya validó; los reportes pendientes no deben aparecer como confirmados.
 7. Ejecuta `npm test` y `npm run check` para las pruebas automáticas.
 
-**Advertencia:** GeoAlerta sigue en desarrollo. El formulario no envía avisos a instituciones ni servicios oficiales todavía. Para emergencias reales en Ecuador se debe llamar al ECU 911.
+**Advertencia:** GeoAlerta sigue en desarrollo. Los correos se envían a miembros activos de las instituciones configuradas dentro de la plataforma, pero esto no constituye una integración oficial con los sistemas de despacho de los organismos de emergencia. Para emergencias reales en Ecuador se debe llamar al ECU 911.
