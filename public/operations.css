@@ -1,0 +1,199 @@
+/* GeoAlerta · Despacho institucional y seguimiento ciudadano */
+.operations-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.operations-heading h2 { font-size: 22px; margin-bottom: 6px; }
+.operations-heading h3 { font-size: 16px; margin-bottom: 5px; }
+.operations-heading p, .operations-panel > p {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.operations-panel {
+  margin-bottom: 20px;
+  padding: 22px;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background: var(--card-bg);
+}
+.operations-panel > h3 { margin-bottom: 7px; }
+.operations-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 17px 0;
+}
+.operations-toolbar label {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+.operations-toolbar select,
+.operations-priority {
+  min-height: 39px;
+  padding: 8px 11px;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  background: var(--input-bg);
+  color: var(--text-main);
+  font: inherit;
+  font-size: 12px;
+}
+.operations-list {
+  display: grid;
+  gap: 13px;
+}
+.operations-card {
+  min-width: 0;
+  padding: 19px;
+  border: 1px solid #29364a;
+  border-radius: 15px;
+  background: linear-gradient(145deg, #121d2e, #0d1726);
+}
+.operations-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.operations-card-head strong, .operations-card > strong {
+  font-size: 14px;
+  line-height: 1.4;
+}
+.operations-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border: 1px solid rgba(59,130,246,.25);
+  border-radius: 99px;
+  background: rgba(59,130,246,.1);
+  color: #a9ceff;
+  font-size: 10px;
+  font-weight: 700;
+}
+.operations-description {
+  margin: 8px 0 12px;
+  color: #e5edf8;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.operations-meta {
+  margin: 6px 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.operations-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.operations-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid #35445a;
+  border-radius: 9px;
+  background: #172438;
+  color: #e8eef8;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.operations-button:hover { border-color: #71839c; background: #1c2c44; }
+.operations-button--primary {
+  border-color: rgba(239,68,68,.35);
+  background: rgba(239,68,68,.15);
+  color: #ffb0b0;
+}
+.operations-button--danger {
+  border-color: rgba(239,68,68,.25);
+  background: transparent;
+  color: #ff9b9b;
+}
+.operations-empty, .operations-error, .operations-message {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.operations-error { color: #fca5a5; }
+.operations-check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 9px;
+  margin: 14px 0;
+}
+.operations-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: rgba(3,7,18,.45);
+  color: #dce5f1;
+  font-size: 11px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.operations-check input {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  accent-color: #ef4444;
+}
+.operations-check span { overflow-wrap: anywhere; }
+.operations-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 12px;
+}
+.operations-photos img {
+  width: min(180px, 100%);
+  max-height: 160px;
+  object-fit: cover;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+}
+.operations-timeline {
+  margin-top: 13px;
+  padding: 13px;
+  border-left: 2px solid #3c526f;
+  background: rgba(3,7,18,.35);
+}
+.operations-timeline h4 {
+  margin: 8px 0;
+  font-size: 12px;
+}
+.operations-timeline-item {
+  display: grid;
+  gap: 3px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(148,163,184,.12);
+}
+.operations-timeline-item:last-child { border-bottom: 0; }
+@media (max-width: 600px) {
+  .operations-panel, .operations-card { padding: 15px; }
+  .operations-heading h2 { font-size: 19px; }
+  .operations-toolbar { align-items: stretch; }
+  .operations-toolbar label { width: 100%; }
+  .operations-toolbar select { width: 100%; }
+  .operations-actions > .operations-button { flex: 1 1 auto; }
+}
