@@ -96,3 +96,28 @@ test('la consulta del historial requiere que los reportes pertenezcan al usuario
   assert.ok(consultas[0].sql.includes("WHERE e.estado <> 'cerrada'"));
   assert.ok(!consultas[0].sql.includes('FROM reportes r WHERE'));
 });
+
+
+test('registra rutas protegidas para despacho, bandeja institucional y seguimiento', () => {
+  const rutas = {};
+  const app = {
+    get(path, ...fn) { rutas['GET ' + path] = fn.at(-1); },
+    post(path, ...fn) { rutas['POST ' + path] = fn.at(-1); },
+    put(path, ...fn) { rutas['PUT ' + path] = fn.at(-1); },
+    patch(path, ...fn) { rutas['PATCH ' + path] = fn.at(-1); }
+  };
+  mountReportRoutes(app, { query: async () => ({ rows: [], rowCount: 0 }) },
+    (_req, _res, next) => next());
+  for (const ruta of [
+    'GET /api/admin/distribucion',
+    'PUT /api/admin/distribucion/:tipoId',
+    'GET /api/admin/reportes/sin-asignar',
+    'POST /api/admin/reportes/:id/asignar',
+    'GET /api/instituciones/:id/reportes',
+    'POST /api/instituciones/:id/reportes/:reporteId/validar',
+    'PATCH /api/instituciones/:id/reportes/:reporteId/estado',
+    'GET /api/reportes/:id/seguimiento'
+  ]) {
+    assert.equal(typeof rutas[ruta], 'function', 'No se registró ' + ruta);
+  }
+});
