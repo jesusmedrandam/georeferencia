@@ -213,7 +213,7 @@ function crearTarjetaInstitucional(reporte, institucionId) {
   const acciones = nodoTexto('div', '', 'operations-actions');
   const estado = reporte.estado_asignacion;
   const tieneValidacion = Boolean(reporte.estado_emergencia);
-  if (estado === 'recibido') {
+  if (estado === 'recibido' && !tieneValidacion) {
     acciones.appendChild(crearBoton('Iniciar revisión', 'operations-button', () =>
       cambiarEstadoInstitucional(institucionId, reporte.id, 'en_revision')));
   }
@@ -252,8 +252,8 @@ function crearTarjetaInstitucional(reporte, institucionId) {
     acciones.appendChild(crearBoton('Cerrar caso', 'operations-button operations-button--danger', () =>
       cambiarEstadoInstitucional(institucionId, reporte.id, 'cerrada')));
   }
-  if (estado === 'recibido' && tieneValidacion) {
-    acciones.appendChild(nodoTexto('span', 'Otra institución ya validó este reporte. Coordina la atención con ella.', 'operations-meta'));
+  if (tieneValidacion && !['validado', 'en_atencion', 'controlada', 'cerrada'].includes(estado)) {
+    acciones.appendChild(nodoTexto('span', 'Otra institución ya validó este reporte. Consulta su estado y coordina la atención con ella.', 'operations-meta'));
   }
   if (acciones.children.length) tarjeta.appendChild(acciones);
 
