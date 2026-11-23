@@ -325,9 +325,9 @@ function mountReportRoutes(app, pool, verificarToken, enviarCorreo) {
           JOIN tipos_emergencia t ON t.id = r.tipo_id WHERE r.id = $1`,
         [reporteId]
       );
-      for (const institucionId of ids) {
+      for (const asignacion of creadas) {
         await avisarMiembrosInstitucion(
-          pool, enviarCorreo, institucionId, reporteId,
+          pool, enviarCorreo, asignacion.institucion_id, reporteId,
           ficha.rows[0]?.tipo || 'emergencia', ficha.rows[0]?.descripcion || ''
         );
       }
@@ -411,11 +411,13 @@ function mountReportRoutes(app, pool, verificarToken, enviarCorreo) {
       }
       await cliente.query('COMMIT');
       const cantidad = destinos.rows.length;
+      const nombreTipo = (await pool.query(
+        'SELECT nombre FROM tipos_emergencia WHERE id = $1', [datos.tipoId]
+      )).rows[0]?.nombre || 'emergencia';
       for (const destino of destinos.rows) {
         await avisarMiembrosInstitucion(
           pool, enviarCorreo, destino.institucion_id, reporte.id,
-          datos.tipoId ? (await pool.query('SELECT nombre FROM tipos_emergencia WHERE id = $1', [datos.tipoId])).rows[0]?.nombre || 'emergencia' : 'emergencia',
-          datos.descripcion
+          nombreTipo, datos.descripcion
         );
       }
       res.status(201).json({
