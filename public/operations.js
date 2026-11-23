@@ -239,6 +239,8 @@ function crearTarjetaInstitucional(reporte, institucionId) {
         'POST', { prioridad: prioridad.value }
       );
     }));
+    acciones.appendChild(crearBoton('Solicitar información', 'operations-button', () =>
+      cambiarEstadoInstitucional(institucionId, reporte.id, 'informacion_solicitada')));
     acciones.appendChild(crearBoton('Rechazar', 'operations-button operations-button--danger', () =>
       cambiarEstadoInstitucional(institucionId, reporte.id, 'rechazado')));
   }
