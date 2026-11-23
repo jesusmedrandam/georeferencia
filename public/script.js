@@ -43,8 +43,16 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll('[data-go-view]').forEach(button => {
         button.addEventListener('click', () => cambiarVistaDashboard(button.dataset.goView));
     });
-    document.getElementById('homeProfileButton').addEventListener('click', () => {
+    document.getElementById('homeProfileButton').addEventListener('click', (event) => {
+        event.stopPropagation();
         document.getElementById('profileDropdown').classList.remove('hidden');
+        document.getElementById('userMenuBtn').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+    document.getElementById('userMenuBtn').addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            toggleProfileDropdown(event);
+        }
     });
 
     document.getElementById('userMenuBtn').addEventListener('click', toggleProfileDropdown);
