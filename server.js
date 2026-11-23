@@ -353,7 +353,7 @@ app.put('/api/usuario/perfil', verificarToken, upload.single('foto_perfil'), asy
 });
 
 mountInstitutionRoutes(app, pool, verificarToken);
-mountReportRoutes(app, pool, verificarToken);
+mountReportRoutes(app, pool, verificarToken, enviarCorreo);
 
 // Nunca exponer las rutas hasta completar las migraciones.
 // Una migración fallida detiene el proceso para no operar con tablas incompletas.
