@@ -8,7 +8,7 @@ const MAX_ARCHIVO = 3 * 1024 * 1024;
 const mimePermitidos = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const prioridades = new Set(['baja', 'media', 'alta', 'critica']);
 const estadosAsignacion = new Set([
-  'recibido', 'en_revision', 'en_atencion', 'controlada',
+  'recibido', 'en_revision', 'validado', 'en_atencion', 'controlada',
   'cerrada', 'informacion_solicitada', 'rechazado', 'derivado'
 ]);
 
@@ -480,8 +480,8 @@ function mountReportRoutes(app, pool, verificarToken) {
           WHERE ra.institucion_id = $1
             AND ($2 = '' OR ra.estado = $2)
           ORDER BY CASE ra.estado
-            WHEN 'recibido' THEN 0 WHEN 'en_revision' THEN 1
-            WHEN 'en_atencion' THEN 2 WHEN 'controlada' THEN 3 ELSE 4 END,
+            WHEN 'recibido' THEN 0 WHEN 'en_revision' THEN 1 WHEN 'validado' THEN 2
+            WHEN 'en_atencion' THEN 3 WHEN 'controlada' THEN 4 ELSE 5 END,
             r.creado_en DESC
           LIMIT 200`,
         [req.institucionId, estado]
@@ -556,7 +556,7 @@ function mountReportRoutes(app, pool, verificarToken) {
       );
       await cliente.query(
         `UPDATE reporte_asignaciones
-            SET estado = 'en_revision', prioridad = $1, actualizado_en = NOW()
+            SET estado = 'validado', prioridad = $1, actualizado_en = NOW()
           WHERE reporte_id = $2 AND institucion_id = $3`,
         [prioridad, reporteId, req.institucionId]
       );
@@ -585,6 +585,7 @@ function mountReportRoutes(app, pool, verificarToken) {
     const transiciones = {
       recibido: ['en_revision', 'informacion_solicitada', 'rechazado'],
       en_revision: ['informacion_solicitada', 'rechazado'],
+      validado: ['en_atencion'],
       en_atencion: ['controlada', 'cerrada'],
       controlada: ['en_atencion', 'cerrada']
     };
