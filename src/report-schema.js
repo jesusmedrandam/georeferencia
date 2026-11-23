@@ -1,6 +1,7 @@
 'use strict';
 
-// Fase 2. Esquema incremental; no borra ni altera los usuarios existentes.
+// Esquema incremental de reportes, despacho institucional y seguimiento.
+// No elimina ni modifica registros existentes.
 async function initializeReportSchema(pool) {
   const client = await pool.connect();
   try {
@@ -59,6 +60,31 @@ async function initializeReportSchema(pool) {
         creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS tipo_emergencia_instituciones (
+        id BIGSERIAL PRIMARY KEY,
+        tipo_id SMALLINT NOT NULL REFERENCES tipos_emergencia(id) ON DELETE CASCADE,
+        institucion_id INTEGER NOT NULL REFERENCES instituciones(id) ON DELETE CASCADE,
+        creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (tipo_id, institucion_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS reporte_asignaciones (
+        id BIGSERIAL PRIMARY KEY,
+        reporte_id BIGINT NOT NULL REFERENCES reportes(id) ON DELETE CASCADE,
+        institucion_id INTEGER NOT NULL REFERENCES instituciones(id) ON DELETE RESTRICT,
+        asignado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+        estado VARCHAR(24) NOT NULL DEFAULT 'recibido'
+          CHECK (estado IN (
+            'recibido', 'en_revision', 'validado', 'en_atencion', 'controlada',
+            'cerrada', 'informacion_solicitada', 'rechazado', 'derivado'
+          )),
+        prioridad VARCHAR(12) NOT NULL DEFAULT 'media'
+          CHECK (prioridad IN ('baja', 'media', 'alta', 'critica')),
+        creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        actualizado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (reporte_id, institucion_id)
+      );
+
       CREATE INDEX IF NOT EXISTS idx_reportes_usuario_fecha
         ON reportes (usuario_id, creado_en DESC);
       CREATE INDEX IF NOT EXISTS idx_reportes_estado_fecha
@@ -69,6 +95,12 @@ async function initializeReportSchema(pool) {
         ON reporte_bitacora (reporte_id, creado_en);
       CREATE INDEX IF NOT EXISTS idx_emergencias_estado
         ON emergencias (estado, creada_en DESC);
+      CREATE INDEX IF NOT EXISTS idx_tipo_inst_tipo
+        ON tipo_emergencia_instituciones (tipo_id, institucion_id);
+      CREATE INDEX IF NOT EXISTS idx_asignaciones_institucion_estado
+        ON reporte_asignaciones (institucion_id, estado, creado_en DESC);
+      CREATE INDEX IF NOT EXISTS idx_asignaciones_reporte
+        ON reporte_asignaciones (reporte_id, creado_en DESC);
     `);
 
     // Alta inicial de tipos. No modifica los tipos ya existentes ni sus estados.
