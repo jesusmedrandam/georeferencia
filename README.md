@@ -77,7 +77,7 @@ El alta de miembros requiere que el usuario **ya exista y haya verificado su cor
 - Las autorizaciones institucionales se comprueban en el backend con membresías activas: ocultar controles en el navegador no concede ni sustituye permisos.
 - Faltan pruebas de integración reales contra PostgreSQL y comprobaciones operativas de correo antes de usar el sistema en producción.
 
-## Diseño para las siguientes fases (todavía no implementado)
+## Fase 3: despacho institucional y seguimiento
 
 Se propone separar cuatro conceptos:
 
@@ -86,7 +86,7 @@ Se propone separar cuatro conceptos:
 - **Asignación institucional:** relación entre emergencia e institución, responsable y estado propio de atención.
 - **Bitácora:** entradas inmutables con actor, fecha/hora, acción y cambios relevantes.
 
-Cuando empecemos esa fase, añade migraciones controladas para `reportes`, `evidencias`, `emergencias`, `emergencia_instituciones` y `bitacora`. Las notificaciones públicas requieren reglas de validación y evaluación de riesgo, no solo la clasificación automática por tipo.
+Las tablas de despacho y seguimiento se crean mediante migraciones incrementales en el arranque. La distribución a una institución requiere una regla configurada por el superadministrador; no se infiere una entidad responsable solo a partir del tipo de incidente.
 
 **GeoAlerta aún no es un servicio oficial de emergencias. Ante una emergencia real en Ecuador, utiliza el ECU 911.**
 
@@ -108,9 +108,9 @@ El sistema permite que cualquier cuenta verificada envíe un reporte de incident
 
 Un reporte se crea con estado **pendiente**. Su autor lo puede consultar en **Mis reportes**, incluidas sus fotografías, mediante endpoints autenticados que comprueban la propiedad del registro. No se publica públicamente como emergencia validada.
 
-La nueva tabla `emergencias` es distinta de `reportes`. El mapa de emergencias verificadas solo utiliza registros de `emergencias` y se mostrará **vacío al comienzo**, hasta que se implemente el panel de validación institucional. Este es el comportamiento correcto. Los puntos azules del mapa son únicamente reportes del usuario autenticado (en la página del historial visible). Los rojos representarán emergencias ya validadas.
+La nueva tabla `emergencias` es distinta de `reportes`. El mapa de emergencias verificadas solo utiliza registros de `emergencias`. Los reportes pendientes no se publican como emergencias confirmadas. Los puntos azules representan reportes del usuario autenticado y los rojos representan emergencias validadas.
 
-Los estados del reporte son `pendiente`, `informacion_solicitada`, `validado` y `rechazado`. Los estados de una emergencia validada son `validada`, `en_atencion`, `controlada` y `cerrada`. La fase 2 **no agrega aún botones para validar o rechazar**: corresponden a la fase 3 y deben verificar el rol institucional autorizado del lado del servidor.
+Los estados del reporte son `pendiente`, `informacion_solicitada`, `validado` y `rechazado`. Los estados de una emergencia validada son `validada`, `en_atencion`, `controlada` y `cerrada`. La fase 3 incorpora una bandeja institucional. Solo los miembros activos de una institución pueden consultar y gestionar los reportes asignados a esa institución; los permisos se comprueban en el backend.
 
 ### Nuevos endpoints (sesión Bearer obligatoria)
 
@@ -128,6 +128,35 @@ Los estados del reporte son `pendiente`, `informacion_solicitada`, `validado` y 
 
 Render tiene que poder instalar las nuevas dependencias de `package.json`, incluida `sharp`, y conservar las variables `DATABASE_URL`, `JWT_SECRET` y `BREVO_API_KEY`. El mapa necesita conexión para obtener las teselas de OpenStreetMap, pero el formulario permite introducir las coordenadas manualmente si no se carga el mapa.
 
+
+### Despacho y atención institucional
+
+- El superadministrador configura en **Despacho de reportes** qué instituciones reciben cada categoría de emergencia. Una categoría puede dirigirse a varias instituciones.
+- Al registrar un reporte, el backend crea asignaciones para las instituciones configuradas y envía correos a sus miembros activos/verificados mediante Brevo.
+- Si una categoría no tiene reglas de distribución, el reporte queda en la cola **Reportes pendientes de asignación** del superadministrador. Desde allí puede asignarlo manualmente a una o varias instituciones.
+- Los reportes asignados aparecen en **Bandeja institucional** para los operadores y administradores activos de esa institución.
+- El flujo institucional es: recibido → en revisión → validado con prioridad → en atención → controlado o cerrado. También se puede solicitar información o rechazar un reporte antes de validarlo.
+- La validación crea el registro de emergencia que alimenta el mapa de emergencias verificadas. Los cambios de estado quedan registrados en la bitácora.
+- El ciudadano consulta instituciones responsables y actuaciones desde **Seguimiento**. Recibe correos cuando la autoridad valida o actualiza el estado del reporte.
+- Las fotografías pueden consultarlas el ciudadano propietario, el superadministrador y los miembros activos de las instituciones a las que se asignó el reporte.
+
+**Importante sobre la distribución:** actualmente las instituciones no tienen provincia, cantón ni cobertura geográfica registrados. Por eso las reglas se configuran por categoría, no por ubicación. No se debe asumir que una institución cubre todo el territorio solo por su tipo.
+
+### Nuevas rutas principales
+
+| Método | Ruta | Permiso / finalidad |
+| --- | --- | --- |
+| GET | `/api/admin/distribucion` | Superadministrador: consulta reglas, categorías e instituciones activas |
+| PUT | `/api/admin/distribucion/:tipoId` | Superadministrador: reemplaza instituciones destinatarias de una categoría |
+| GET | `/api/admin/reportes/sin-asignar` | Superadministrador: cola central de reportes sin destino |
+| POST | `/api/admin/reportes/:id/asignar` | Superadministrador: asigna reportes manualmente |
+| GET | `/api/instituciones/:id/reportes` | Miembro activo: bandeja de su institución |
+| POST | `/api/instituciones/:id/reportes/:reporteId/validar` | Miembro activo: valida y asigna prioridad |
+| PATCH | `/api/instituciones/:id/reportes/:reporteId/estado` | Miembro activo: actualiza el estado de atención |
+| GET | `/api/reportes/:id/seguimiento` | Ciudadano propietario: consulta actuaciones e instituciones |
+
+Las nuevas tablas `tipo_emergencia_instituciones` y `reporte_asignaciones` se crean dentro de `initializeReportSchema`. Los reportes antiguos sin asignación permanecen intactos y aparecen en la cola central del superadministrador.
+
 ### Verificación sugerida
 
 1. Inicia sesión y abre **Reportes de emergencia**.
@@ -135,7 +164,7 @@ Render tiene que poder instalar las nuevas dependencias de `package.json`, inclu
 3. Comprueba el mensaje `pendiente` y el punto azul en **Mis reportes**.
 4. Adjunta una foto, comprueba que se muestra al pulsar `Ver fotografía(s)`.
 5. Inicia sesión con otro usuario y verifica que no puede consultar el reporte ni recuperar la foto del primer usuario.
-6. Comprueba que el mapa de emergencias verificadas está vacío hasta que se implemente la revisión institucional.
+6. Comprueba que el mapa solo muestra emergencias que una institución ya validó; los reportes pendientes no deben aparecer como confirmados.
 7. Ejecuta `npm test` y `npm run check` para las pruebas automáticas.
 
-**Advertencia:** GeoAlerta sigue en desarrollo. El formulario no envía avisos a instituciones ni servicios oficiales todavía. Para emergencias reales en Ecuador se debe llamar al ECU 911.
+**Advertencia:** GeoAlerta sigue en desarrollo. Los correos se envían a miembros activos de las instituciones configuradas dentro de la plataforma, pero esto no constituye una integración oficial con los sistemas de despacho de los organismos de emergencia. Para emergencias reales en Ecuador se debe llamar al ECU 911.
