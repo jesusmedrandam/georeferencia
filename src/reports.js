@@ -74,10 +74,10 @@ function idPositivo(valor) {
 async function esMiembroInstitucional(pool, institucionId, usuarioId, usuario) {
   if (usuario?.es_superadmin) return true;
   const { rowCount } = await pool.query(
-    \`SELECT 1 FROM institucion_usuarios iu
+    `SELECT 1 FROM institucion_usuarios iu
        JOIN instituciones i ON i.id = iu.institucion_id
       WHERE iu.institucion_id = $1 AND iu.usuario_id = $2
-        AND iu.activo = TRUE AND i.activo = TRUE\`,
+        AND iu.activo = TRUE AND i.activo = TRUE`,
     [institucionId, usuarioId]
   );
   return rowCount > 0;
@@ -212,7 +212,7 @@ function mountReportRoutes(app, pool, verificarToken) {
   app.get('/api/admin/reportes/sin-asignar', verificarToken, soloSuperadmin, async (_req, res) => {
     try {
       const { rows } = await pool.query(
-        \`SELECT r.id, r.descripcion, r.personas_afectadas, r.latitud, r.longitud,
+        `SELECT r.id, r.descripcion, r.personas_afectadas, r.latitud, r.longitud,
                 r.referencia_ubicacion, r.estado, r.creado_en,
                 t.id AS tipo_id, t.nombre AS tipo,
                 u.nombre AS ciudadano_nombre, u.apellido AS ciudadano_apellido,
@@ -228,7 +228,7 @@ function mountReportRoutes(app, pool, verificarToken) {
             SELECT 1 FROM reporte_asignaciones ra WHERE ra.reporte_id = r.id
           )
           ORDER BY r.creado_en ASC
-          LIMIT 200\`
+          LIMIT 200`
       );
       res.json({ reportes: rows });
     } catch (error) {
@@ -264,10 +264,10 @@ function mountReportRoutes(app, pool, verificarToken) {
       const creadas = [];
       for (const institucionId of ids) {
         const resultado = await cliente.query(
-          \`INSERT INTO reporte_asignaciones (reporte_id, institucion_id, asignado_por)
+          `INSERT INTO reporte_asignaciones (reporte_id, institucion_id, asignado_por)
            VALUES ($1,$2,$3)
            ON CONFLICT (reporte_id, institucion_id) DO NOTHING
-           RETURNING id, institucion_id, estado\`,
+           RETURNING id, institucion_id, estado`,
           [reporteId, institucionId, req.usuarioId]
         );
         if (resultado.rowCount) {
@@ -321,11 +321,11 @@ function mountReportRoutes(app, pool, verificarToken) {
         return res.status(400).json({ mensaje: 'El tipo de emergencia no está disponible.' });
       }
       const resultado = await cliente.query(
-        \`INSERT INTO reportes (
+        `INSERT INTO reportes (
           usuario_id, tipo_id, descripcion, observaciones, personas_afectadas,
           latitud, longitud, referencia_ubicacion
         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-        RETURNING id, estado, creado_en\`,
+        RETURNING id, estado, creado_en`,
         [req.usuarioId, datos.tipoId, datos.descripcion, datos.observaciones || null,
          datos.afectadas, datos.latitud, datos.longitud, datos.referencia || null]
       );
@@ -338,18 +338,18 @@ function mountReportRoutes(app, pool, verificarToken) {
       }
       await registrarEvento(cliente, reporte.id, req.usuarioId, 'creado', {});
       const destinos = await cliente.query(
-        \`SELECT ti.institucion_id, i.nombre
+        `SELECT ti.institucion_id, i.nombre
            FROM tipo_emergencia_instituciones ti
            JOIN instituciones i ON i.id = ti.institucion_id
           WHERE ti.tipo_id = $1 AND i.activo = TRUE
-          ORDER BY i.nombre\`,
+          ORDER BY i.nombre`,
         [datos.tipoId]
       );
       for (const destino of destinos.rows) {
         await cliente.query(
-          \`INSERT INTO reporte_asignaciones (reporte_id, institucion_id, asignado_por)
+          `INSERT INTO reporte_asignaciones (reporte_id, institucion_id, asignado_por)
            VALUES ($1,$2,NULL)
-           ON CONFLICT (reporte_id, institucion_id) DO NOTHING\`,
+           ON CONFLICT (reporte_id, institucion_id) DO NOTHING`,
           [reporte.id, destino.institucion_id]
         );
         await registrarEvento(cliente, reporte.id, null, 'asignado_automaticamente', {
@@ -382,7 +382,7 @@ function mountReportRoutes(app, pool, verificarToken) {
     }
     try {
       const { rows } = await pool.query(
-        \`SELECT r.id, r.descripcion, r.observaciones, r.personas_afectadas,
+        `SELECT r.id, r.descripcion, r.observaciones, r.personas_afectadas,
                 r.latitud, r.longitud, r.referencia_ubicacion, r.estado, r.creado_en,
                 t.nombre AS tipo, t.codigo AS tipo_codigo,
                 COALESCE(f.fotos, '[]'::json) AS fotografias,
@@ -405,7 +405,7 @@ function mountReportRoutes(app, pool, verificarToken) {
            LEFT JOIN emergencias e ON e.reporte_id = r.id
           WHERE r.usuario_id = $1
           ORDER BY r.creado_en DESC, r.id DESC
-          LIMIT 21 OFFSET $2\`,
+          LIMIT 21 OFFSET $2`,
         [req.usuarioId, (pagina - 1) * 20]
       );
       res.json({ reportes: rows.slice(0, 20), hay_mas: rows.length > 20, pagina });
@@ -420,29 +420,29 @@ function mountReportRoutes(app, pool, verificarToken) {
     if (!reporteId) return res.status(400).json({ mensaje: 'Reporte inválido.' });
     try {
       const reporte = await pool.query(
-        \`SELECT r.id, r.estado, r.creado_en, r.descripcion, r.referencia_ubicacion,
+        `SELECT r.id, r.estado, r.creado_en, r.descripcion, r.referencia_ubicacion,
                 t.nombre AS tipo, e.estado AS estado_emergencia, e.prioridad
            FROM reportes r
            JOIN tipos_emergencia t ON t.id = r.tipo_id
            LEFT JOIN emergencias e ON e.reporte_id = r.id
-          WHERE r.id = $1 AND r.usuario_id = $2\`,
+          WHERE r.id = $1 AND r.usuario_id = $2`,
         [reporteId, req.usuarioId]
       );
       if (!reporte.rowCount) return res.status(404).json({ mensaje: 'Reporte no encontrado.' });
       const [instituciones, eventos] = await Promise.all([
         pool.query(
-          \`SELECT i.nombre AS institucion, ra.estado, ra.prioridad
+          `SELECT i.nombre AS institucion, ra.estado, ra.prioridad
              FROM reporte_asignaciones ra
              JOIN instituciones i ON i.id = ra.institucion_id
-            WHERE ra.reporte_id = $1 ORDER BY i.nombre\`,
+            WHERE ra.reporte_id = $1 ORDER BY i.nombre`,
           [reporteId]
         ),
         pool.query(
-          \`SELECT b.accion, b.detalle, b.creado_en,
+          `SELECT b.accion, b.detalle, b.creado_en,
                   COALESCE(u.nombre || ' ' || u.apellido, 'Sistema') AS actor
              FROM reporte_bitacora b
              LEFT JOIN usuarios u ON u.id = b.actor_usuario_id
-            WHERE b.reporte_id = $1 ORDER BY b.creado_en, b.id\`,
+            WHERE b.reporte_id = $1 ORDER BY b.creado_en, b.id`,
           [reporteId]
         )
       ]);
@@ -460,7 +460,7 @@ function mountReportRoutes(app, pool, verificarToken) {
     }
     try {
       const { rows } = await pool.query(
-        \`SELECT r.id, r.descripcion, r.observaciones, r.personas_afectadas,
+        `SELECT r.id, r.descripcion, r.observaciones, r.personas_afectadas,
                 r.latitud, r.longitud, r.referencia_ubicacion, r.estado AS estado_reporte,
                 r.creado_en, t.nombre AS tipo, t.codigo AS tipo_codigo,
                 u.nombre AS ciudadano_nombre, u.apellido AS ciudadano_apellido,
@@ -483,7 +483,7 @@ function mountReportRoutes(app, pool, verificarToken) {
             WHEN 'recibido' THEN 0 WHEN 'en_revision' THEN 1
             WHEN 'en_atencion' THEN 2 WHEN 'controlada' THEN 3 ELSE 4 END,
             r.creado_en DESC
-          LIMIT 200\`,
+          LIMIT 200`,
         [req.institucionId, estado]
       );
       res.json({ reportes: rows });
@@ -503,11 +503,11 @@ function mountReportRoutes(app, pool, verificarToken) {
       );
       if (!asignacion.rowCount) return res.status(404).json({ mensaje: 'El reporte no está asignado a esta institución.' });
       const { rows } = await pool.query(
-        \`SELECT b.accion, b.detalle, b.creado_en,
+        `SELECT b.accion, b.detalle, b.creado_en,
                 COALESCE(u.nombre || ' ' || u.apellido, 'Sistema') AS actor
            FROM reporte_bitacora b
            LEFT JOIN usuarios u ON u.id = b.actor_usuario_id
-          WHERE b.reporte_id = $1 ORDER BY b.creado_en, b.id\`,
+          WHERE b.reporte_id = $1 ORDER BY b.creado_en, b.id`,
         [reporteId]
       );
       res.json({ seguimiento: rows });
@@ -528,11 +528,11 @@ function mountReportRoutes(app, pool, verificarToken) {
     try {
       await cliente.query('BEGIN');
       const asignacion = await cliente.query(
-        \`SELECT ra.id, ra.estado, r.estado AS estado_reporte
+        `SELECT ra.id, ra.estado, r.estado AS estado_reporte
            FROM reporte_asignaciones ra
            JOIN reportes r ON r.id = ra.reporte_id
           WHERE ra.reporte_id = $1 AND ra.institucion_id = $2
-          FOR UPDATE OF ra, r\`,
+          FOR UPDATE OF ra, r`,
         [reporteId, req.institucionId]
       );
       if (!asignacion.rowCount) {
@@ -550,14 +550,14 @@ function mountReportRoutes(app, pool, verificarToken) {
         return res.status(409).json({ mensaje: 'El reporte ya fue validado por una institución.' });
       }
       await cliente.query(
-        \`INSERT INTO emergencias (reporte_id, validada_por, prioridad, estado)
-         VALUES ($1,$2,$3,'validada')\`,
+        `INSERT INTO emergencias (reporte_id, validada_por, prioridad, estado)
+         VALUES ($1,$2,$3,'validada')`,
         [reporteId, req.usuarioId, prioridad]
       );
       await cliente.query(
-        \`UPDATE reporte_asignaciones
+        `UPDATE reporte_asignaciones
             SET estado = 'en_revision', prioridad = $1, actualizado_en = NOW()
-          WHERE reporte_id = $2 AND institucion_id = $3\`,
+          WHERE reporte_id = $2 AND institucion_id = $3`,
         [prioridad, reporteId, req.institucionId]
       );
       await cliente.query(
@@ -596,11 +596,11 @@ function mountReportRoutes(app, pool, verificarToken) {
     try {
       await cliente.query('BEGIN');
       const { rows } = await cliente.query(
-        \`SELECT ra.id, ra.estado, r.estado AS estado_reporte
+        `SELECT ra.id, ra.estado, r.estado AS estado_reporte
            FROM reporte_asignaciones ra
            JOIN reportes r ON r.id = ra.reporte_id
           WHERE ra.reporte_id = $1 AND ra.institucion_id = $2
-          FOR UPDATE OF ra, r\`,
+          FOR UPDATE OF ra, r`,
         [reporteId, req.institucionId]
       );
       if (!rows.length) {
@@ -650,9 +650,9 @@ function mountReportRoutes(app, pool, verificarToken) {
         );
       } else if (estado === 'rechazado') {
         const restantes = await cliente.query(
-          \`SELECT COUNT(*)::int AS total FROM reporte_asignaciones
+          `SELECT COUNT(*)::int AS total FROM reporte_asignaciones
             WHERE reporte_id = $1 AND institucion_id <> $2
-              AND estado NOT IN ('rechazado', 'derivado', 'cerrada')\`,
+              AND estado NOT IN ('rechazado', 'derivado', 'cerrada')`,
           [reporteId, req.institucionId]
         );
         if (!restantes.rows[0].total) {
@@ -682,7 +682,7 @@ function mountReportRoutes(app, pool, verificarToken) {
     if (!id || !fotoId) return res.status(400).json({ mensaje: 'Identificador inválido.' });
     try {
       const { rows } = await pool.query(
-        \`SELECT rf.imagen, rf.mime
+        `SELECT rf.imagen, rf.mime
            FROM reporte_fotografias rf
            JOIN reportes r ON r.id = rf.reporte_id
           WHERE rf.id = $1 AND rf.reporte_id = $2
@@ -696,7 +696,7 @@ function mountReportRoutes(app, pool, verificarToken) {
                 WHERE ra.reporte_id = r.id AND iu.usuario_id = $3
                   AND iu.activo = TRUE AND i.activo = TRUE
               )
-            )\`,
+            )`,
         [fotoId, id, req.usuarioId]
       );
       if (!rows.length) return res.status(404).json({ mensaje: 'Fotografía no encontrada.' });
@@ -713,13 +713,13 @@ function mountReportRoutes(app, pool, verificarToken) {
   app.get('/api/mapa/emergencias', verificarToken, async (_req, res) => {
     try {
       const { rows } = await pool.query(
-        \`SELECT e.id, r.latitud, r.longitud, t.nombre AS tipo,
+        `SELECT e.id, r.latitud, r.longitud, t.nombre AS tipo,
                 e.prioridad, e.estado, e.creada_en
            FROM emergencias e
            JOIN reportes r ON r.id = e.reporte_id
            JOIN tipos_emergencia t ON t.id = r.tipo_id
           WHERE e.estado <> 'cerrada'
-          ORDER BY e.creada_en DESC LIMIT 500\`
+          ORDER BY e.creada_en DESC LIMIT 500`
       );
       res.json({ emergencias: rows });
     } catch (error) {
