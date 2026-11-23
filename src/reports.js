@@ -90,7 +90,48 @@ async function registrarEvento(cliente, reporteId, actorId, accion, detalle = {}
   );
 }
 
-function mountReportRoutes(app, pool, verificarToken) {
+async function avisarMiembrosInstitucion(pool, enviarCorreo, institucionId, reporteId, tipo, descripcion) {
+  if (typeof enviarCorreo !== 'function') return 0;
+  try {
+    const { rows } = await pool.query(
+      `SELECT DISTINCT u.email, i.nombre AS institucion
+         FROM institucion_usuarios iu
+         JOIN usuarios u ON u.id = iu.usuario_id
+         JOIN instituciones i ON i.id = iu.institucion_id
+        WHERE iu.institucion_id = $1 AND iu.activo = TRUE
+          AND i.activo = TRUE AND u.activo = TRUE AND u.verificado = TRUE`,
+      [institucionId]
+    );
+    const asunto = 'GeoAlerta: nuevo reporte #' + reporteId;
+    const mensaje = 'La institución ' + (rows[0]?.institucion || '') +
+      ' recibió el reporte #' + reporteId + ' (' + tipo + ').\n\n' +
+      descripcion + '\n\nIngresa a GeoAlerta y abre la Bandeja institucional para revisarlo.';
+    const resultados = await Promise.allSettled(
+      rows.filter(fila => fila.email).map(fila => enviarCorreo(fila.email, asunto, mensaje))
+    );
+    return resultados.filter(item => item.status === 'fulfilled' && item.value === true).length;
+  } catch (error) {
+    console.error('No se pudo notificar a los miembros institucionales:', error);
+    return 0;
+  }
+}
+
+async function avisarCiudadano(pool, enviarCorreo, reporteId, asunto, mensaje) {
+  if (typeof enviarCorreo !== 'function') return false;
+  try {
+    const { rows } = await pool.query(
+      `SELECT u.email FROM reportes r JOIN usuarios u ON u.id = r.usuario_id WHERE r.id = $1`,
+      [reporteId]
+    );
+    if (!rows[0]?.email) return false;
+    return await enviarCorreo(rows[0].email, asunto, mensaje);
+  } catch (error) {
+    console.error('No se pudo notificar al ciudadano:', error);
+    return false;
+  }
+}
+
+function mountReportRoutes(app, pool, verificarToken, enviarCorreo) {
   const subir = multer({
     storage: multer.memoryStorage(),
     limits: { files: MAX_FOTOS, fileSize: MAX_ARCHIVO, fields: 12 },
@@ -279,6 +320,17 @@ function mountReportRoutes(app, pool, verificarToken) {
         }
       }
       await cliente.query('COMMIT');
+      const ficha = await pool.query(
+        `SELECT t.nombre AS tipo, r.descripcion FROM reportes r
+          JOIN tipos_emergencia t ON t.id = r.tipo_id WHERE r.id = $1`,
+        [reporteId]
+      );
+      for (const institucionId of ids) {
+        await avisarMiembrosInstitucion(
+          pool, enviarCorreo, institucionId, reporteId,
+          ficha.rows[0]?.tipo || 'emergencia', ficha.rows[0]?.descripcion || ''
+        );
+      }
       res.status(201).json({ mensaje: 'Reporte distribuido a las instituciones seleccionadas.', asignaciones: creadas });
     } catch (error) {
       await cliente.query('ROLLBACK').catch(() => {});
@@ -359,6 +411,13 @@ function mountReportRoutes(app, pool, verificarToken) {
       }
       await cliente.query('COMMIT');
       const cantidad = destinos.rows.length;
+      for (const destino of destinos.rows) {
+        await avisarMiembrosInstitucion(
+          pool, enviarCorreo, destino.institucion_id, reporte.id,
+          datos.tipoId ? (await pool.query('SELECT nombre FROM tipos_emergencia WHERE id = $1', [datos.tipoId])).rows[0]?.nombre || 'emergencia' : 'emergencia',
+          datos.descripcion
+        );
+      }
       res.status(201).json({
         mensaje: cantidad
           ? 'Reporte registrado y enviado a ' + cantidad + ' institución(es) responsable(s).'
@@ -568,6 +627,12 @@ function mountReportRoutes(app, pool, verificarToken) {
         institucion_id: req.institucionId, prioridad, nota
       });
       await cliente.query('COMMIT');
+      await avisarCiudadano(
+        pool, enviarCorreo, reporteId, 'GeoAlerta: tu reporte fue validado',
+        'La institución responsable validó tu reporte #' + reporteId +
+        ' con prioridad ' + prioridad + '. Puedes consultar el seguimiento desde tu cuenta de GeoAlerta.' +
+        (nota ? '\\n\\nObservación: ' + nota : '')
+      );
       res.json({ mensaje: 'Reporte validado. Ya puedes actualizar su estado de atención.' });
     } catch (error) {
       await cliente.query('ROLLBACK').catch(() => {});
@@ -667,6 +732,12 @@ function mountReportRoutes(app, pool, verificarToken) {
         institucion_id: req.institucionId, estado, nota
       });
       await cliente.query('COMMIT');
+      await avisarCiudadano(
+        pool, enviarCorreo, reporteId, 'GeoAlerta: actualización de tu reporte #' + reporteId,
+        'La institución responsable actualizó el estado de tu reporte a: ' + estado +
+        '. Ingresa a GeoAlerta para consultar el historial de actuaciones.' +
+        (nota ? '\\n\\nObservación: ' + nota : '')
+      );
       res.json({ mensaje: 'Seguimiento actualizado correctamente.', estado });
     } catch (error) {
       await cliente.query('ROLLBACK').catch(() => {});
