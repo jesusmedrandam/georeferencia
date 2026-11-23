@@ -209,6 +209,12 @@ function crearTarjetaInstitucional(reporte, institucionId) {
     ' · Ubicación: ' + reporte.latitud + ', ' + reporte.longitud +
     (reporte.referencia_ubicacion ? ' · ' + reporte.referencia_ubicacion : ''),
     'operations-meta'));
+  const nota = document.createElement('textarea');
+  nota.className = 'operations-note';
+  nota.maxLength = 1000;
+  nota.rows = 2;
+  nota.placeholder = 'Observación de la autoridad (opcional)';
+  tarjeta.appendChild(nota);
 
   const acciones = nodoTexto('div', '', 'operations-actions');
   const estado = reporte.estado_asignacion;
@@ -306,11 +312,13 @@ function crearTarjetaInstitucional(reporte, institucionId) {
   return tarjeta;
 }
 
-async function cambiarEstadoInstitucional(institucionId, reporteId, estado) {
-  const nota = '';
+async function cambiarEstadoInstitucional(institucionId, reporteId, estado, nota = '') {
+  const tarjeta = [...document.querySelectorAll('#listaBandejaInstitucional .operations-card')]
+    .find(item => item.textContent.includes('#' + reporteId + ' ·'));
+  const observacion = tarjeta?.querySelector('.operations-note')?.value.trim() || nota;
   return ejecutarAccionInstitucional(
     '/api/instituciones/' + institucionId + '/reportes/' + reporteId + '/estado',
-    'PATCH', { estado, nota }
+    'PATCH', { estado, nota: observacion }
   );
 }
 
