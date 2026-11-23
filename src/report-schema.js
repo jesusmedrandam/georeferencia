@@ -75,7 +75,7 @@ async function initializeReportSchema(pool) {
         asignado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
         estado VARCHAR(24) NOT NULL DEFAULT 'recibido'
           CHECK (estado IN (
-            'recibido', 'en_revision', 'en_atencion', 'controlada',
+            'recibido', 'en_revision', 'validado', 'en_atencion', 'controlada',
             'cerrada', 'informacion_solicitada', 'rechazado', 'derivado'
           )),
         prioridad VARCHAR(12) NOT NULL DEFAULT 'media'
