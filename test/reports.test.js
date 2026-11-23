@@ -60,7 +60,7 @@ test('el esquema crea reportes y emergencias separadamente en una transacción',
   };
   await initializeReportSchema({ connect: async () => cliente });
   const conjunto = sentencias.join('\n');
-  for (const nombre of ['tipos_emergencia', 'reportes', 'reporte_fotografias', 'emergencias', 'reporte_bitacora']) {
+  for (const nombre of ['tipos_emergencia', 'reportes', 'reporte_fotografias', 'emergencias', 'reporte_bitacora', 'tipo_emergencia_instituciones', 'reporte_asignaciones']) {
     assert.ok(conjunto.includes('CREATE TABLE IF NOT EXISTS ' + nombre));
   }
   assert.ok(sentencias.includes('BEGIN'));
@@ -72,7 +72,9 @@ test('la consulta del historial requiere que los reportes pertenezcan al usuario
   const rutas = {};
   const app = {
     get(path, ...fn) { rutas['GET ' + path] = fn.at(-1); },
-    post(path, ...fn) { rutas['POST ' + path] = fn.at(-1); }
+    post(path, ...fn) { rutas['POST ' + path] = fn.at(-1); },
+    put(path, ...fn) { rutas['PUT ' + path] = fn.at(-1); },
+    patch(path, ...fn) { rutas['PATCH ' + path] = fn.at(-1); }
   };
   const consultas = [];
   const pool = {
