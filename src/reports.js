@@ -319,12 +319,12 @@ function mountReportRoutes(app, pool, verificarToken, enviarCorreo) {
           });
         }
       }
-      await cliente.query('COMMIT');
-      const ficha = await pool.query(
+      const ficha = await cliente.query(
         `SELECT t.nombre AS tipo, r.descripcion FROM reportes r
           JOIN tipos_emergencia t ON t.id = r.tipo_id WHERE r.id = $1`,
         [reporteId]
       );
+      await cliente.query('COMMIT');
       for (const asignacion of creadas) {
         await avisarMiembrosInstitucion(
           pool, enviarCorreo, asignacion.institucion_id, reporteId,
@@ -365,7 +365,7 @@ function mountReportRoutes(app, pool, verificarToken, enviarCorreo) {
         return res.status(429).json({ mensaje: 'Has llegado al límite de 5 reportes por hora.' });
       }
       const tipo = await cliente.query(
-        'SELECT id FROM tipos_emergencia WHERE id = $1 AND activo = TRUE',
+        'SELECT id, nombre FROM tipos_emergencia WHERE id = $1 AND activo = TRUE',
         [datos.tipoId]
       );
       if (!tipo.rowCount) {
@@ -382,6 +382,7 @@ function mountReportRoutes(app, pool, verificarToken, enviarCorreo) {
          datos.afectadas, datos.latitud, datos.longitud, datos.referencia || null]
       );
       const reporte = resultado.rows[0];
+      const nombreTipo = tipo.rows[0].nombre;
       for (const buffer of fotografias) {
         await cliente.query(
           'INSERT INTO reporte_fotografias (reporte_id, imagen, mime, tamano_bytes) VALUES ($1,$2,$3,$4)',
@@ -411,9 +412,6 @@ function mountReportRoutes(app, pool, verificarToken, enviarCorreo) {
       }
       await cliente.query('COMMIT');
       const cantidad = destinos.rows.length;
-      const nombreTipo = (await pool.query(
-        'SELECT nombre FROM tipos_emergencia WHERE id = $1', [datos.tipoId]
-      )).rows[0]?.nombre || 'emergencia';
       for (const destino of destinos.rows) {
         await avisarMiembrosInstitucion(
           pool, enviarCorreo, destino.institucion_id, reporte.id,
@@ -734,9 +732,18 @@ function mountReportRoutes(app, pool, verificarToken, enviarCorreo) {
         institucion_id: req.institucionId, estado, nota
       });
       await cliente.query('COMMIT');
+      const etiquetasEstado = {
+        en_revision: 'En revisión',
+        en_atencion: 'En atención',
+        controlada: 'Emergencia controlada',
+        cerrada: 'Caso cerrado',
+        informacion_solicitada: 'Información solicitada',
+        rechazado: 'Rechazado'
+      };
       await avisarCiudadano(
         pool, enviarCorreo, reporteId, 'GeoAlerta: actualización de tu reporte #' + reporteId,
-        'La institución responsable actualizó el estado de tu reporte a: ' + estado +
+        'La institución responsable actualizó el estado de tu reporte a: ' +
+        (etiquetasEstado[estado] || estado) +
         '. Ingresa a GeoAlerta para consultar el historial de actuaciones.' +
         (nota ? '\\n\\nObservación: ' + nota : '')
       );
