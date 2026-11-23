@@ -134,6 +134,7 @@
         /* Los estilos del módulo de reportes están en reports.css */
     </style>
     <link rel="stylesheet" href="reports.css?v=2">
+    <link rel="stylesheet" href="dashboard.css?v=1">
 </head>
 <body>
 
@@ -260,51 +261,108 @@
         </div>
     </div>
 
+
     <div class="dashboard-screen hidden" id="dashboardScreen">
-        <div class="navbar">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <img src="logo.png" alt="Logo" style="width: 35px; height: 35px; object-fit: contain;">
-                <span style="font-weight: 800; font-size: 20px;">GeoAlerta Panel</span>
-            </div>
-            
-            <div class="user-profile-menu" id="userMenuBtn">
-                <span id="navUserName">Usuario</span>
-                <img id="navAvatar" src="" class="user-avatar" onerror="this.src='https://ui-avatars.com/api/?name=User&background=ef4444&color=fff';">
-                
-                <div class="dropdown-profile hidden" id="profileDropdown">
-                    <h4 style="margin-bottom: 15px; font-size: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Editar Mi Perfil</h4>
-                    
-                    <div class="form-group"><label>Nombre</label><input type="text" id="profNombre" class="form-control" style="padding: 8px 12px;"></div>
-                    <div class="form-group"><label>Apellido</label><input type="text" id="profApellido" class="form-control" style="padding: 8px 12px;"></div>
-                    <div class="form-group"><label>Teléfono</label><input type="text" id="profTelefono" class="form-control" style="padding: 8px 12px;" placeholder="+593..."></div>
-                    
-                    <div class="form-group">
-                        <label>Foto de Perfil</label>
-                        <label class="file-input-wrapper">
-                            <i class="fa-solid fa-cloud-arrow-up"></i> <span id="fileNameLabel">Seleccionar foto de tu equipo</span>
-                            <input type="file" id="profFotoFile" accept="image/*" style="display: none;">
-                        </label>
+        <div class="dashboard-layout">
+            <aside class="dashboard-sidebar" aria-label="Navegación principal">
+                <div class="sidebar-brand">
+                    <img src="logo.png" alt="GeoAlerta" onerror="this.style.display='none';">
+                    <div><strong>GeoAlerta</strong><span>Centro de gestión</span></div>
+                </div>
+                <nav class="dashboard-nav">
+                    <button type="button" class="nav-item active" data-view="inicio" aria-current="page">
+                        <i class="fa-solid fa-house" aria-hidden="true"></i><span>Inicio</span>
+                    </button>
+                    <button type="button" class="nav-item" data-view="reportar">
+                        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><span>Reportar emergencia</span>
+                    </button>
+                    <button type="button" class="nav-item" data-view="reportes">
+                        <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i><span>Mis reportes</span>
+                    </button>
+                    <button type="button" class="nav-item" data-view="instituciones">
+                        <i class="fa-solid fa-building" aria-hidden="true"></i><span>Instituciones</span>
+                    </button>
+                </nav>
+                <div class="sidebar-footer">
+                    <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                    <span>Plataforma en desarrollo</span>
+                </div>
+            </aside>
+
+            <div class="dashboard-main">
+                <header class="navbar">
+                    <div class="navbar-heading">
+                        <h1 id="currentViewTitle">Inicio</h1>
+                        <p id="currentViewDescription">Accesos principales de GeoAlerta</p>
                     </div>
-                    
-                    <button type="button" class="submit-btn" id="btnSaveProfile" style="padding: 8px; font-size: 14px; margin-bottom: 10px;">Guardar Cambios</button>
-                    <button type="button" class="submit-btn" id="btnLogout" style="padding: 8px; font-size: 14px; background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);">Cerrar Sesión</button>
+                    <div class="user-profile-menu" id="userMenuBtn" role="button" tabindex="0" aria-haspopup="true" aria-label="Abrir menú de usuario">
+                        <span id="navUserName">Usuario</span>
+                        <img id="navAvatar" src="" class="user-avatar" alt="Fotografía de perfil" onerror="this.src='https://ui-avatars.com/api/?name=User&background=ef4444&color=fff';">
+                        <div class="dropdown-profile hidden" id="profileDropdown">
+                            <h4>Editar mi perfil</h4>
+                            <div class="form-group"><label for="profNombre">Nombre</label><input type="text" id="profNombre" class="form-control"></div>
+                            <div class="form-group"><label for="profApellido">Apellido</label><input type="text" id="profApellido" class="form-control"></div>
+                            <div class="form-group"><label for="profTelefono">Teléfono</label><input type="text" id="profTelefono" class="form-control" placeholder="+593..."></div>
+                            <div class="form-group">
+                                <label>Foto de perfil</label>
+                                <label class="file-input-wrapper">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> <span id="fileNameLabel">Seleccionar foto de tu equipo</span>
+                                    <input type="file" id="profFotoFile" accept="image/*" style="display:none;">
+                                </label>
+                            </div>
+                            <button type="button" class="submit-btn" id="btnSaveProfile">Guardar cambios</button>
+                            <button type="button" class="submit-btn profile-logout-btn" id="btnLogout">Cerrar sesión</button>
+                        </div>
+                    </div>
+                </header>
+
+                <main class="dashboard-content">
+
+            <section id="homeArea" class="dashboard-view" aria-label="Inicio">
+                <div class="dashboard-home-heading">
+                    <div>
+                        <p class="dashboard-eyebrow">CENTRO DE GESTIÓN</p>
+                        <h1>Bienvenido, <span id="dashWelcomeName"></span></h1>
+                        <p>Selecciona una opción para continuar. Cada herramienta se abrirá por separado.</p>
+                    </div>
                 </div>
-            </div>
-        </div>
-
-        <div class="dashboard-content">
-            <h1 style="font-size: 32px; font-weight: 800;">Bienvenido de vuelta, <span id="dashWelcomeName" style="color: var(--accent-primary);"></span></h1>
-            <div class="alert-box">
-                <i class="fa-solid fa-triangle-exclamation" style="font-size: 36px; color: var(--accent-primary);"></i>
-                <div>
-                    <h3 style="font-size: 18px; margin-bottom: 4px;">GeoAlerta en desarrollo</h3>
-                    <p style="color: var(--text-muted); font-size: 14px;">Ya puedes registrar reportes y consultar sus ubicaciones. La revisión institucional y las alertas públicas estarán disponibles en la siguiente fase.</p>
+                <div class="dashboard-notice">
+                    <span class="dashboard-notice-icon"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></span>
+                    <div>
+                        <strong>GeoAlerta está en desarrollo</strong>
+                        <p>Actualmente puedes registrar reportes y consultar su estado. La revisión institucional y las alertas públicas todavía no están habilitadas.</p>
+                    </div>
                 </div>
-            </div>
-
-
-
-            <section class="reporte-area" id="reportesArea" aria-label="Reportes de emergencia">
+                <div class="dashboard-launch-grid">
+                    <button type="button" class="dashboard-launch-card dashboard-launch-card--alert" data-go-view="reportar">
+                        <span class="dashboard-launch-icon"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span>
+                        <span class="dashboard-launch-title">Reportar emergencia</span>
+                        <span class="dashboard-launch-description">Registra un incidente, describe lo ocurrido y marca su ubicación en el mapa.</span>
+                        <span class="dashboard-launch-link">Abrir formulario <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+                    </button>
+                    <button type="button" class="dashboard-launch-card dashboard-launch-card--reports" data-go-view="reportes">
+                        <span class="dashboard-launch-icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></span>
+                        <span class="dashboard-launch-title">Mis reportes</span>
+                        <span class="dashboard-launch-description">Consulta los incidentes que has registrado, sus estados y fotografías.</span>
+                        <span class="dashboard-launch-link">Consultar reportes <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+                    </button>
+                    <button type="button" class="dashboard-launch-card dashboard-launch-card--institutions" data-go-view="instituciones">
+                        <span class="dashboard-launch-icon"><i class="fa-solid fa-building" aria-hidden="true"></i></span>
+                        <span class="dashboard-launch-title">Instituciones</span>
+                        <span class="dashboard-launch-description">Revisa tus vinculaciones y las herramientas disponibles según tu rol.</span>
+                        <span class="dashboard-launch-link">Ver instituciones <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+                    </button>
+                    <button type="button" class="dashboard-launch-card dashboard-launch-card--profile" id="homeProfileButton">
+                        <span class="dashboard-launch-icon"><i class="fa-solid fa-user-gear" aria-hidden="true"></i></span>
+                        <span class="dashboard-launch-title">Mi perfil</span>
+                        <span class="dashboard-launch-description">Actualiza tus datos personales y tu fotografía de perfil.</span>
+                        <span class="dashboard-launch-link">Editar perfil <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+                    </button>
+                </div>
+                <p class="dashboard-emergency-note"><i class="fa-solid fa-phone" aria-hidden="true"></i> Ante una emergencia real en Ecuador, comunícate con el ECU 911.</p>
+            </section>
+<section class="reporte-area dashboard-view hidden" id="reportesArea" aria-label="Reportes de emergencia">
+              <div id="reportarView" class="reportes-subview">
               <header class="reporte-header reporte-intro">
                 <div>
                   <h2>Reportes de emergencia</h2>
@@ -409,6 +467,8 @@
                   <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Enviar reporte
                 </button>
               </div>
+              </div>
+              <div id="misReportesView" class="reportes-subview hidden">
               <div class="reporte-card reporte-history">
                 <div class="reporte-header">
                   <div class="reporte-card-head">
@@ -417,6 +477,7 @@
                     </span>
                     <div><h3>Mis reportes</h3><p>Consulta el estado y los detalles de tus reportes anteriores.</p></div>
                   </div>
+                  <button type="button" class="reporte-nuevo-btn" data-go-view="reportar"><i class="fa-solid fa-plus" aria-hidden="true"></i> Nuevo reporte</button>
                   <button id="botonActualizarReportes" type="button">
                     <i class="fa-solid fa-rotate" aria-hidden="true"></i> Actualizar
                   </button>
@@ -428,9 +489,9 @@
                   <button id="reporteSiguiente" type="button" disabled>Siguiente</button>
                 </div>
               </div>
+                          </div>
             </section>
-
-            <section id="institutionArea" aria-label="Gestión de instituciones">
+<section id="institutionArea" class="dashboard-view hidden" aria-label="Gestión de instituciones">
                 <div class="inst-grid">
                     <div class="inst-panel">
                         <div class="inst-head"><h2>Mis instituciones</h2><span id="etiquetaRol" style="font-size:13px;color:var(--text-muted)">Ciudadano</span></div>
@@ -475,9 +536,10 @@
                     </div>
                 </div>
             </section>
+                </main>
+            </div>
         </div>
     </div>
-
     <script src="script.js"></script>
     <script src="institutions.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>

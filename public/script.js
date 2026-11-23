@@ -37,6 +37,24 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     document.getElementById('btnLogout').addEventListener('click', logout);
     
+    document.querySelectorAll('.dashboard-nav [data-view]').forEach(button => {
+        button.addEventListener('click', () => cambiarVistaDashboard(button.dataset.view));
+    });
+    document.querySelectorAll('[data-go-view]').forEach(button => {
+        button.addEventListener('click', () => cambiarVistaDashboard(button.dataset.goView));
+    });
+    document.getElementById('homeProfileButton').addEventListener('click', (event) => {
+        event.stopPropagation();
+        document.getElementById('profileDropdown').classList.remove('hidden');
+        document.getElementById('userMenuBtn').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+    document.getElementById('userMenuBtn').addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            toggleProfileDropdown(event);
+        }
+    });
+
     document.getElementById('userMenuBtn').addEventListener('click', toggleProfileDropdown);
     document.getElementById('profileDropdown').addEventListener('click', (e) => e.stopPropagation());
 
@@ -210,6 +228,60 @@ async function handleResendResetCode() {
     }
 }
 
+function cambiarVistaDashboard(vista) {
+    const configuracion = {
+        inicio: {
+            id: 'homeArea',
+            titulo: 'Inicio',
+            descripcion: 'Accesos principales de GeoAlerta'
+        },
+        reportar: {
+            id: 'reportesArea',
+            subvista: 'reportarView',
+            titulo: 'Reportar emergencia',
+            descripcion: 'Registra un incidente y señala su ubicación'
+        },
+        reportes: {
+            id: 'reportesArea',
+            subvista: 'misReportesView',
+            titulo: 'Mis reportes',
+            descripcion: 'Consulta el historial y el estado de tus reportes'
+        },
+        instituciones: {
+            id: 'institutionArea',
+            titulo: 'Instituciones',
+            descripcion: 'Consulta tus vinculaciones y herramientas institucionales'
+        }
+    };
+
+    const seleccion = configuracion[vista] || configuracion.inicio;
+    document.querySelectorAll('.dashboard-view').forEach(panel => panel.classList.add('hidden'));
+    const panelActivo = document.getElementById(seleccion.id);
+    if (panelActivo) panelActivo.classList.remove('hidden');
+
+    if (seleccion.subvista) {
+        document.getElementById('reportarView').classList.toggle('hidden', seleccion.subvista !== 'reportarView');
+        document.getElementById('misReportesView').classList.toggle('hidden', seleccion.subvista !== 'misReportesView');
+    }
+
+    document.querySelectorAll('.dashboard-nav [data-view]').forEach(button => {
+        const activo = button.dataset.view === vista;
+        button.classList.toggle('active', activo);
+        if (activo) button.setAttribute('aria-current', 'page');
+        else button.removeAttribute('aria-current');
+    });
+
+    document.getElementById('currentViewTitle').textContent = seleccion.titulo;
+    document.getElementById('currentViewDescription').textContent = seleccion.descripcion;
+    document.getElementById('profileDropdown').classList.add('hidden');
+
+    if (vista === 'reportar' && typeof activarMapaReportes === 'function') {
+        activarMapaReportes();
+    } else if (vista === 'reportes' && typeof refrescarReportes === 'function') {
+        refrescarReportes().catch(error => mensajeReporte(error.message, true));
+    }
+}
+
 function cargarDashboard() {
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('dashboardScreen').classList.remove('hidden');
@@ -226,6 +298,7 @@ function cargarDashboard() {
     document.getElementById('profNombre').value = usuarioActual.nombre;
     document.getElementById('profApellido').value = usuarioActual.apellido;
     document.getElementById('profTelefono').value = usuarioActual.telefono || '';
+    cambiarVistaDashboard('inicio');
     cargarInstituciones().catch(error => mostrarMensajeInstitucional(error.message));
     cargarReportes().catch(error => mensajeReporte(error.message, true));
 }
