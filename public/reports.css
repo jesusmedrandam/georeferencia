@@ -396,3 +396,79 @@
   #reportesArea .reporte-lista {grid-template-columns:1fr}
   #reportesArea .reporte-paginacion {justify-content:center}
 }
+
+/* Resumen operativo de cada reporte ciudadano */
+#reportesArea .reporte-resumen-estado { margin-top: 8px; }
+#reportesArea .reporte-prioridad {
+  display: inline-flex;
+  width: fit-content;
+  margin: 9px 0 0;
+  padding: 5px 9px;
+  border: 1px solid #465b78;
+  border-radius: 8px;
+  background: #172b42;
+  color: #d8e8fb;
+  font-size: 12px;
+  font-weight: 700;
+}
+#reportesArea .reporte-instituciones {
+  display: grid;
+  gap: 7px;
+  margin-top: 13px;
+  padding: 11px 12px;
+  border: 1px solid #263b53;
+  border-radius: 11px;
+  background: #0d1a2a;
+}
+#reportesArea .reporte-instituciones-titulo { margin: 0 0 2px; font-weight: 700; }
+#reportesArea .reporte-institucion-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 7px 12px;
+  color: #d7e3f1;
+  font-size: 12px;
+  line-height: 1.5;
+}
+#reportesArea .reporte-institucion-estado {
+  display: inline-flex;
+  padding: 3px 8px;
+  border-radius: 99px;
+  background: #26364b;
+  color: #dce9f8;
+  font-size: 10.5px;
+  font-weight: 650;
+}
+#reportesArea .reporte-estado[data-estado="pendiente_asignacion"],
+#reportesArea .reporte-estado[data-estado="pendiente"],
+#reportesArea .reporte-institucion-estado[data-estado="recibido"] {
+  background: #463319;
+  color: #ffe2a1;
+}
+#reportesArea .reporte-estado[data-estado="en_revision"],
+#reportesArea .reporte-institucion-estado[data-estado="en_revision"] {
+  background: #203960;
+  color: #b8d8ff;
+}
+#reportesArea .reporte-estado[data-estado="en_atencion"],
+#reportesArea .reporte-estado[data-estado="controlada"],
+#reportesArea .reporte-estado[data-estado="cerrada"],
+#reportesArea .reporte-institucion-estado[data-estado="en_atencion"],
+#reportesArea .reporte-institucion-estado[data-estado="controlada"],
+#reportesArea .reporte-institucion-estado[data-estado="cerrada"],
+#reportesArea .reporte-institucion-estado[data-estado="validado"] {
+  background: #174033;
+  color: #8fe3ba;
+}
+#reportesArea .reporte-institucion-estado[data-estado="informacion_solicitada"] {
+  background: #203960;
+  color: #b8d8ff;
+}
+#reportesArea .reporte-institucion-estado[data-estado="rechazado"] {
+  background: #47242c;
+  color: #ffb3b3;
+}
+@media (max-width: 600px) {
+  #reportesArea .reporte-institucion-fila { align-items: flex-start; }
+}
