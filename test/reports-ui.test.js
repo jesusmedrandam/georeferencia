@@ -7,6 +7,7 @@ const path = require('node:path');
 const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
 const css = fs.readFileSync(path.join(__dirname, '../public/reports.css'), 'utf8');
 const js = fs.readFileSync(path.join(__dirname, '../public/reports.js'), 'utf8');
+const operationsJs = fs.readFileSync(path.join(__dirname, '../public/operations.js'), 'utf8');
 
 test('usa el hash oficial de Leaflet para no bloquear el mapa', () => {
   assert.match(html, /leaflet@1\.9\.4\/dist\/leaflet\.css/);
@@ -38,4 +39,25 @@ test('los identificadores consultados por el script existen en la interfaz', () 
     assert.match(html, new RegExp('id="' + id + '"'), 'Falta ' + id);
   }
   assert.match(js, /addEventListener\('change', mostrarArchivosSeleccionados\)/);
+});
+
+
+test('incluye los módulos de seguimiento, bandeja institucional y despacho', () => {
+  for (const id of [
+    'trackingArea', 'authorityArea', 'dispatchArea',
+    'navTracking', 'navAuthorityInbox', 'navDispatch',
+    'listaSeguimientoCiudadano', 'listaBandejaInstitucional',
+    'distributionTypeSelect', 'listaReportesSinAsignar'
+  ]) {
+    assert.match(html, new RegExp('id="' + id + '"'), 'Falta el elemento ' + id);
+  }
+  for (const funcion of [
+    'cargarSeguimientoCiudadano', 'cargarBandejaInstitucional',
+    'cargarPanelDespacho', 'guardarDistribucion'
+  ]) {
+    assert.ok(operationsJs.includes('function ' + funcion) ||
+      operationsJs.includes('async function ' + funcion), 'Falta ' + funcion);
+  }
+  assert.match(html, /operations\.js\?v=1/);
+  assert.match(html, /operations\.css\?v=1/);
 });
