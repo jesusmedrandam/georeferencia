@@ -76,6 +76,15 @@ function iniciarMapaReportes() {
   setTimeout(() => mapaReportes?.invalidateSize(), 100);
 }
 
+function activarMapaReportes() {
+  iniciarMapaReportes();
+  if (!mapaReportes) return;
+  setTimeout(() => {
+    mapaReportes?.invalidateSize();
+    refrescarReportes().catch(mostrarErrorReportes);
+  }, 100);
+}
+
 function establecerUbicacion(lat, lng, centrar = false) {
   if (!Number.isFinite(lat) || lat < -90 || lat > 90 ||
       !Number.isFinite(lng) || lng < -180 || lng > 180) return;
@@ -152,7 +161,6 @@ async function cargarTiposReporte() {
 async function cargarReportes() {
   if (!usuarioActual) return;
   const generacion = ++secuenciaReportes;
-  iniciarMapaReportes();
   try {
     await cargarTiposReporte();
     if (generacion !== secuenciaReportes) return;
@@ -259,6 +267,9 @@ function mostrarListadoReportes(reportes) {
     const ubicar = texto('button', 'Ubicar en mapa');
     ubicar.type = 'button';
     ubicar.addEventListener('click', () => {
+      if (!mapaReportes && typeof cambiarVistaDashboard === 'function') {
+        cambiarVistaDashboard('reportar');
+      }
       if (!mapaReportes) return mensajeReporte('El mapa no está disponible.', true);
       mapaReportes.setView([Number(reporte.latitud), Number(reporte.longitud)], 15);
       mapaReportes.invalidateSize();
